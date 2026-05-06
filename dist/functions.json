@@ -1,0 +1,204 @@
+{
+    "allowCustomDataForDataTypeAny": true,
+    "functions": [
+        {
+            "description": "Retrieves a value from the captured Data Controller store by matching the Record ID (first column).",
+            "id": "GET",
+            "name": "GET",
+            "parameters": [
+                {
+                    "description": "Optional. The unique Record ID to find in the first column. Returns headers if empty.",
+                    "name": "id",
+                    "optional": true,
+                    "type": "any"
+                },
+                {
+                    "description": "Optional. The name of the property to retrieve. Returns the entire record if empty.",
+                    "name": "fieldName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The name of the data table. Uses default if empty.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number. Uses the latest by default.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
+        },
+        {
+            "description": "Searches for a value in a specific column and returns multiple matching records.",
+            "id": "SEARCH",
+            "name": "SEARCH",
+            "parameters": [
+                {
+                    "description": "The column name to search in.",
+                    "name": "searchField",
+                    "type": "string"
+                },
+                {
+                    "description": "The value to find.",
+                    "name": "searchValue",
+                    "type": "any"
+                },
+                {
+                    "description": "The column name of the value to return.",
+                    "name": "returnField",
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The name of the data table. Uses default if empty.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number. Uses the latest by default.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
+        },
+        {
+            "description": "Returns all full records that match a specific criteria.",
+            "id": "FILTER",
+            "name": "FILTER",
+            "parameters": [
+                {
+                    "description": "The column name to search in.",
+                    "name": "searchField",
+                    "type": "string"
+                },
+                {
+                    "description": "The value to find.",
+                    "name": "searchValue",
+                    "type": "any"
+                },
+                {
+                    "description": "Optional. The name of the data table.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                },
+                {
+                    "description": "Optional. Set to true for an exact match. Default is false (partial match).",
+                    "name": "exactMatch",
+                    "optional": true,
+                    "type": "boolean"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
+        },
+        {
+            "description": "Sums all numerical values in a specified column.",
+            "id": "SUM",
+            "name": "SUM",
+            "parameters": [
+                {
+                    "description": "The column name to sum.",
+                    "name": "sumField",
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The name of the data table.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                }
+            ],
+            "result": {}
+        },
+        {
+            "description": "Sums values in a column based on a specific condition.",
+            "id": "SUMIFS",
+            "name": "SUMIFS",
+            "parameters": [
+                {
+                    "description": "The column name to sum.",
+                    "name": "sumField",
+                    "type": "string"
+                },
+                {
+                    "description": "The column name to check.",
+                    "name": "criteriaField",
+                    "type": "string"
+                },
+                {
+                    "description": "The value to match.",
+                    "name": "criteriaValue",
+                    "type": "any"
+                },
+                {
+                    "description": "Optional. The name of the data table.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                }
+            ],
+            "result": {}
+        },
+        {
+            "description": "Joins a base table with a foreign table and appends a selected column from the foreign table.",
+            "id": "JOIN",
+            "name": "JOIN",
+            "parameters": [
+                {
+                    "description": "The name of the primary data table (e.g., Orders).",
+                    "name": "baseTableName",
+                    "type": "string"
+                },
+                {
+                    "description": "The column in the base table that links to the foreign table (e.g., CustomerID).",
+                    "name": "foreignKeyField",
+                    "type": "string"
+                },
+                {
+                    "description": "The name of the related table to look up (e.g., Customers).",
+                    "name": "foreignTableName",
+                    "type": "string"
+                },
+                {
+                    "description": "The column in the foreign table to retrieve and append (e.g., CustomerName).",
+                    "name": "foreignReturnField",
+                    "type": "string"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
+        }
+    ]
+}

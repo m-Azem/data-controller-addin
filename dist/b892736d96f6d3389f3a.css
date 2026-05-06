@@ -1,0 +1,421 @@
+/* Base Variables (Light Theme) */
+:root {
+    --bg-color: #f3f2f1; /* Modern Office background */
+    --text-color: #242424;
+    --tab-bg: #ffffff;
+    --tab-active-bg: #f3f2f1;
+    --primary-color: #217346; /* Lighter Modern Excel Green */
+    --primary-hover: #107c41;
+    --border-color: #e1dfdd;
+    --input-bg: #ffffff;
+    --input-border: #8a8886;
+    --card-bg: #ffffff;
+    --hover-bg: #f3f2f1;
+    --shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108);
+    --shadow-hover: 0 3.2px 7.2px 0 rgba(0,0,0,0.132), 0 0.6px 1.8px 0 rgba(0,0,0,0.108);
+    --border-radius: 4px;
+    --card-radius: 8px;
+    --header-bg: var(--primary-color);
+    --header-text: #ffffff;
+    --header-icon-hover: rgba(255, 255, 255, 0.2);
+}
+
+/* Dark Theme Overrides */
+body.theme-dark {
+    --bg-color: #11100f;
+    --text-color: #f3f2f1;
+    --tab-bg: #201f1e;
+    --tab-active-bg: #11100f;
+    --primary-color: #3aa564;
+    --primary-hover: #48b471;
+    --border-color: #484644;
+    --input-bg: #292827;
+    --input-border: #8a8886;
+    --card-bg: #201f1e;
+    --hover-bg: #323130;
+    --shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.25), 0 0.3px 0.9px 0 rgba(0,0,0,0.18);
+    --shadow-hover: 0 3.2px 7.2px 0 rgba(0,0,0,0.3), 0 0.6px 1.8px 0 rgba(0,0,0,0.22);
+    --header-bg: #201f1e;
+    --header-text: #f3f2f1;
+    --header-icon-hover: #323130;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    min-width: 320px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.ms-welcome__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background-color: var(--header-bg);
+    border-bottom: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-left, .header-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.title-text {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 600;
+    color: var(--header-text);
+    letter-spacing: -0.01em;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none !important;
+    color: var(--header-text);
+    font-size: 16px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background-color: var(--header-icon-hover);
+    color: var(--header-text);
+}
+
+.icon-btn.active {
+    color: var(--header-text);
+    background-color: var(--header-icon-hover);
+}
+
+/* Tabs Navigation */
+.tab-nav {
+    display: flex;
+    background-color: var(--card-bg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 0 12px;
+    position: relative;
+    z-index: 10;
+}
+
+.tab-link {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 14px 4px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-weight: 400;
+    font-size: 14px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    outline: none;
+    position: relative;
+}
+
+.tab-link:hover {
+    background-color: var(--hover-bg);
+    color: var(--primary-color);
+}
+
+.tab-link.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    background-color: transparent;
+}
+
+/* Excel Ribbon Style Animated Underline */
+.tab-link::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; /* Align with the border-bottom of tab-nav */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background-color: var(--primary-color);
+    transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border-radius: 3px 3px 0 0;
+}
+
+.tab-link.active::after {
+    width: 80%;
+}
+
+.tab-content {
+    display: none;
+    padding: 24px 16px;
+}
+
+.tab-content.active {
+    display: block;
+    animation: tabFadeIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* Content Fade & Slide Animation */
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Global Status */
+.status-container {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+}
+
+/* Utilities */
+.description-text {
+    margin: 0 0 16px 0;
+    color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+/* Form Inputs & Buttons overrides for Modern Look */
+.ms-Button {
+    border-radius: var(--border-radius) !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+    height: 32px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+}
+.ms-Button--primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+.ms-Button--primary:hover {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    color: #ffffff !important;
+}
+
+/* Backup and Restore Buttons */
+#backup-button {
+    background-color: #0078d4 !important;
+    border-color: #0078d4 !important;
+    color: #ffffff !important;
+}
+#backup-button:hover {
+    background-color: #106ebe !important;
+    border-color: #106ebe !important;
+}
+
+#restore-button {
+    background-color: #008272 !important;
+    border-color: #008272 !important;
+    color: #ffffff !important;
+}
+#restore-button:hover {
+    background-color: #00665a !important;
+    border-color: #00665a !important;
+}
+
+.ms-TextField {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ms-Label {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: var(--text-color) !important;
+}
+
+.ms-TextField-field, .ms-Dropdown-title {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--input-border) !important;
+    border-radius: var(--border-radius) !important;
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.ms-TextField-field:focus, .ms-Dropdown-title:focus, .ms-Dropdown-title:active {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 1px var(--primary-color) !important;
+    outline: none !important;
+}
+
+body.theme-dark .ms-Button--default {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body.theme-dark .ms-Button--default:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Dashboard Data Table Items */
+.data-table-item {
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.data-table-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.data-table-header {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.data-table-details {
+    margin-top: 15px;
+}
+
+.formula-builder-section {
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 16px !important;
+    margin-top: 16px !important;
+}
+
+/* Search Dropdown */
+.search-results-dropdown {
+    position: absolute;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    border-radius: var(--border-radius);
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Theme Toggle Switch */
+.theme-switch { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.theme-switch input { display: none; }
+.slider { position: relative; width: 40px; height: 20px; background-color: var(--input-border); border-radius: 20px; transition: .3s; }
+.slider:before { content: ""; position: absolute; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .3s; }
+input:checked + .slider { background-color: var(--primary-color); }
+input:checked + .slider:before { transform: translateX(20px); }
+.theme-label-text { color: var(--text-color); font-size: 14px; font-weight: 500; }
+
+/* Edit Form Container */
+.edit-form-container {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: var(--bg-color);
+    border: 1px dashed var(--primary-color);
+    border-radius: var(--card-radius);
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+}
+
+/* --- Action Groups (Inside Cards) --- */
+.action-group {
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background-color: rgba(0,0,0,0.02);
+}
+body.theme-dark .action-group {
+    background-color: rgba(255,255,255,0.02);
+}
+.action-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* --- Utility Classes --- */
+.dashboard-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.flex-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.flex-1 {
+    flex: 1;
+    margin: 0;
+}
+.flex-2 {
+    flex: 2;
+    margin: 0;
+}
+.w-100 {
+    width: 100%;
+}
+.data-table-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
