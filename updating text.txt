@@ -1,0 +1,7 @@
+npm run build
+git subtree push --prefix dist origin gh-pages
+
+
+https://localhost:3000
+
+https://m-azem.github.io/data-controller-addin
