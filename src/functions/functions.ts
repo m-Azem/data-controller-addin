@@ -1,9 +1,10 @@
-﻿﻿﻿﻿﻿﻿import { getTableData } from "../services/dataService";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { getTableData } from "../services/dataService";
+import { idbGet } from "../utils/db";
 
 /**
- * Retrieves a value from the captured Data Controller store by matching the Record ID (first column).
+ * Retrieves a value from the captured Data Controller store by matching the Record ID.
  * @customfunction GET
- * @param {any} [id] Optional. The unique Record ID to find in the first column. Returns headers if empty.
+ * @param {any} [id] Optional. The unique Record ID to find. Returns headers if empty.
  * @param {string} [fieldName] Optional. The name of the property to retrieve. Returns the entire record if empty.
  * @param {string} [dataTableName] Optional. The name of the data table. Uses default if empty.
  * @param {number} [rev] Optional. The revision number. Uses the latest by default.
@@ -14,13 +15,20 @@ export async function dcGet(id?: any, fieldName?: string, dataTableName?: string
     const table = await getTableData(dataTableName, rev);
     if (table.error) return [[table.error]];
 
-    const { records, fields: headers } = table;
+    const { records, fields: headers } = table as any;
+    
+    const storeRaw = await idbGet("DC_STORE");
+    const store = storeRaw ? JSON.parse(storeRaw) : {};
+    const defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    const resolvedTableName = dataTableName && String(dataTableName).trim() !== "" ? dataTableName : defaultTable;
+    const dataSet = store[resolvedTableName] || {};
     
     if (id === undefined || id === null || String(id).trim() === "") {
       return [headers];
     }
 
-    const record = records.find((r: any) => String(r[headers[0]]) === String(id));
+    const actualIdField = dataSet.idField || (table as any).idField || headers[0];
+    const record = records.find((r: any) => String(r[actualIdField]) === String(id));
 
     if (!record) {
       return [["Not Found"]];
@@ -163,7 +171,11 @@ export async function dcJoin(baseTableName: string, foreignKeyField: string, for
     const foreignTable = await getTableData(foreignTableName);
     if (foreignTable.error) return [[`Foreign Table Error: ${foreignTable.error}`]];
 
-    const foreignIdField = foreignTable.fields[0]; // ID is always the 1st column
+    const storeRaw = await idbGet("DC_STORE");
+    const store = storeRaw ? JSON.parse(storeRaw) : {};
+    const foreignDataSet = store[foreignTableName] || {};
+
+    const foreignIdField = foreignDataSet.idField || (foreignTable as any).idField || foreignTable.fields[0];
     const newHeaders = [...baseTable.fields, foreignReturnField];
 
     const resultRows = baseTable.records.map((bRec: any) => {
@@ -182,9 +194,12 @@ export async function dcJoin(baseTableName: string, foreignKeyField: string, for
 }
 
 // Explicitly associate functions for Shared Runtime to ensure Excel finds them during background initialization
-CustomFunctions.associate("GET", dcGet);
-CustomFunctions.associate("SEARCH", dcSearch);
-CustomFunctions.associate("FILTER", dcFilter);
-CustomFunctions.associate("SUM", dcSum);
-CustomFunctions.associate("SUMIFS", dcSumifs);
-CustomFunctions.associate("JOIN", dcJoin);
+if (!(globalThis as any)._dcFunctionsRegistered) {
+  (globalThis as any)._dcFunctionsRegistered = true;
+  CustomFunctions.associate("GET", dcGet);
+  CustomFunctions.associate("SEARCH", dcSearch);
+  CustomFunctions.associate("FILTER", dcFilter);
+  CustomFunctions.associate("SUM", dcSum);
+  CustomFunctions.associate("SUMIFS", dcSumifs);
+  CustomFunctions.associate("JOIN", dcJoin);
+}

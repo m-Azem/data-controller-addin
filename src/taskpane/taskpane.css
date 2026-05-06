@@ -104,67 +104,44 @@ body {
     background-color: var(--header-icon-hover);
 }
 
-/* Tabs Navigation */
-.tab-nav {
-    display: flex;
-    background-color: var(--card-bg);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    padding: 0 12px;
-    position: relative;
-    z-index: 10;
-}
-
-.tab-link {
-    flex: 1;
-    background: none;
-    border: none;
-    padding: 14px 4px;
-    cursor: pointer;
-    color: var(--text-color);
-    font-weight: 400;
-    font-size: 14px;
-    transition: color 0.2s ease, background-color 0.2s ease;
-    outline: none;
-    position: relative;
-}
-
-.tab-link:hover {
-    background-color: var(--hover-bg);
-    color: var(--primary-color);
-}
-
-.tab-link.active {
-    color: var(--primary-color);
-    font-weight: 600;
-    background-color: transparent;
-}
-
-/* Excel Ribbon Style Animated Underline */
-.tab-link::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; /* Align with the border-bottom of tab-nav */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 3px;
-    background-color: var(--primary-color);
-    transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    border-radius: 3px 3px 0 0;
-}
-
-.tab-link.active::after {
-    width: 80%;
-}
-
-.tab-content {
-    display: none;
-    padding: 24px 16px;
-}
-
-.tab-content.active {
-    display: block;
+/* View Containers */
+.view-container {
+    padding: 16px 20px;
     animation: tabFadeIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* Accordion Styles */
+.accordion {
+    background-color: var(--card-bg);
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 14px 16px;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    text-align: left;
+    outline: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+}
+.accordion.active, .accordion:hover {
+    background-color: var(--hover-bg);
+}
+.accordion-content {
+    display: none;
+    padding: 16px;
+    background-color: transparent;
+    border: 1px dashed var(--border-color);
+    border-top: none;
+    border-radius: 0 0 var(--card-radius) var(--card-radius);
+    margin-bottom: 16px;
+}
+.accordion-content.show {
+    display: block;
 }
 
 /* Content Fade & Slide Animation */
@@ -233,6 +210,28 @@ body {
     color: #ffffff !important;
 }
 
+/* Clean Outline for Default Buttons (Secondary Actions) */
+.ms-Button--default {
+    background-color: transparent !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+.ms-Button--default:hover {
+    background-color: var(--hover-bg) !important;
+    border-color: var(--input-border) !important;
+}
+
+/* Danger Button for Delete Actions */
+.ms-Button--danger {
+    background-color: transparent !important;
+    color: #d13438 !important;
+    border-color: #d13438 !important;
+}
+.ms-Button--danger:hover {
+    background-color: #d13438 !important;
+    color: #ffffff !important;
+}
+
 /* Backup and Restore Buttons */
 #backup-button {
     background-color: #0078d4 !important;
@@ -278,20 +277,26 @@ body {
     font-size: 14px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
+
+/* Modern Dropdown (Select) styling with custom arrow */
+select.ms-Dropdown-title, select.ms-TextField-field {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23888" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 20px;
+    cursor: pointer;
+    padding-right: 32px !important;
+}
+body.theme-dark select.ms-Dropdown-title, body.theme-dark select.ms-TextField-field {
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23f3f2f1" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+}
+
 .ms-TextField-field:focus, .ms-Dropdown-title:focus, .ms-Dropdown-title:active {
     border-color: var(--primary-color) !important;
     box-shadow: 0 0 0 1px var(--primary-color) !important;
     outline: none !important;
-}
-
-body.theme-dark .ms-Button--default {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    border-color: var(--border-color);
-}
-
-body.theme-dark .ms-Button--default:hover {
-    background-color: var(--hover-bg);
 }
 
 /* Dashboard Data Table Items */
@@ -299,6 +304,7 @@ body.theme-dark .ms-Button--default:hover {
     margin-bottom: 16px;
     padding: 16px;
     border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
     border-radius: var(--card-radius);
     background-color: var(--card-bg);
     box-shadow: var(--shadow);
@@ -311,16 +317,34 @@ body.theme-dark .ms-Button--default:hover {
 
 .data-table-header {
     cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.data-table-header-title {
     font-weight: 600;
-    color: var(--primary-color);
+    color: var(--text-color);
     font-size: 15px;
     display: flex;
     align-items: center;
     gap: 6px;
 }
+.data-table-header:hover .data-table-header-title {
+    color: var(--primary-color);
+}
+.data-table-header-stats {
+    font-weight: 400;
+    font-size: 12px;
+    color: #888;
+    background: var(--hover-bg);
+    padding: 4px 8px;
+    border-radius: 12px;
+}
 
 .data-table-details {
-    margin-top: 15px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
 }
 
 .formula-builder-section {
@@ -372,24 +396,77 @@ input:checked + .slider:before { transform: translateX(20px); }
     box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
 }
 
-/* --- Action Groups (Inside Cards) --- */
-.action-group {
+/* --- Inner Accordions (Inside Cards) --- */
+.inner-accordion-header {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 10px 12px;
+    width: 100%;
     border: 1px solid var(--border-color);
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    background-color: rgba(0,0,0,0.02);
+    border-radius: var(--border-radius);
+    text-align: left;
+    outline: none;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    align-items: center;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
-body.theme-dark .action-group {
+.inner-accordion-header:hover {
+    background-color: var(--hover-bg);
+}
+.inner-accordion-header.open {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+.inner-accordion-header.danger {
+    color: #d13438;
+    border-color: #d13438;
+}
+.inner-accordion-header.danger:hover {
+    background-color: #fde7e9;
+}
+body.theme-dark .inner-accordion-header.danger:hover {
+    background-color: rgba(209, 52, 56, 0.15);
+}
+.inner-accordion-header.fast {
+    color: #0078d4;
+    border-color: #0078d4;
+    background-color: #f3f9fd;
+}
+.inner-accordion-header.fast:hover {
+    background-color: #e5f3fa;
+}
+body.theme-dark .inner-accordion-header.fast {
+    color: #4da6ff;
+    border-color: #0078d4;
+    background-color: rgba(0, 120, 212, 0.1);
+}
+body.theme-dark .inner-accordion-header.fast:hover {
+    background-color: rgba(0, 120, 212, 0.2);
+}
+.inner-accordion-content {
+    padding: 16px;
+    background-color: rgba(0,0,0,0.02);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+body.theme-dark .inner-accordion-content {
     background-color: rgba(255,255,255,0.02);
 }
-.action-group-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 8px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+
+/* --- Button Grid System --- */
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.col-span-2 {
+    grid-column: span 2;
 }
 
 /* --- Utility Classes --- */
@@ -418,4 +495,56 @@ body.theme-dark .action-group {
     list-style-type: none;
     padding: 0;
     margin: 0;
+}
+
+/* Custom Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background-color: var(--card-bg);
+    padding: 24px;
+    border-radius: var(--card-radius);
+    width: 90%;
+    box-shadow: var(--shadow-hover);
+}
+
+/* Sortable List */
+.sortable-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--input-bg);
+}
+.sortable-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    transition: background-color 0.2s ease;
+}
+.sortable-item:last-child {
+    border-bottom: none;
+}
+.sortable-item:active {
+    cursor: grabbing;
+}
+.sortable-item.dragging {
+    opacity: 0.6;
+    background-color: var(--hover-bg);
+    border: 1px dashed var(--primary-color);
 }

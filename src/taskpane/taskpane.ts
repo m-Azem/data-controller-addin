@@ -3,7 +3,7 @@
 import { idbGet, idbSet } from "../utils/db";
 import { migrateFromLocalStorage } from "../services/migration";
 import { exportCSVData, downloadBackup, processRestoreFile } from "../services/fileService";
-import { executeInsertTable, executeInsertDropdown, executeInsertFormula, executeConvertToValues, executeRefreshFormulas } from "../services/excelService";
+import { executeInsertTable, executeInsertDropdown, executeConvertToValues, executeRefreshFormulas } from "../services/excelService";
 
 const APP_VERSION = "1.0.1"; // Update this number whenever you release a new version
 
@@ -16,11 +16,30 @@ Office.onReady(async (info) => {
     document.getElementById("restore-file-input").addEventListener("change", restoreData);
     document.getElementById("refresh-formulas-button").onclick = () => refreshFormulas(false);
     document.getElementById("convert-values-button").onclick = convertToValues;
+    document.getElementById("settings-button").onclick = toggleSettings;
     
-    // Setup Tabs
-    document.querySelectorAll('.tab-link').forEach(link => {
-      link.addEventListener('click', switchTab);
-    });
+    // Setup Capture Accordion
+    const captureAccordion = document.getElementById("capture-accordion");
+    const captureContent = document.getElementById("capture-content");
+    if (captureAccordion && captureContent) {
+      captureAccordion.addEventListener("click", () => {
+        captureAccordion.classList.toggle("active");
+        captureContent.classList.toggle("show");
+      });
+    }
+
+    // Setup Formula Builder Accordion
+    const formulaAccordion = document.getElementById("formula-builder-accordion");
+    const formulaContent = document.getElementById("formula-builder-content");
+    if (formulaAccordion && formulaContent) {
+      formulaAccordion.addEventListener("click", () => {
+        formulaAccordion.classList.toggle("active");
+        formulaContent.classList.toggle("show");
+      });
+    }
+
+    document.getElementById("formula-select")?.addEventListener("change", renderFormulaBuilder);
+    document.getElementById("insert-built-formula-button").onclick = insertBuiltFormula;
 
     // Setup Theme Toggle
     const themeToggle = document.getElementById("theme-toggle");
@@ -33,18 +52,529 @@ Office.onReady(async (info) => {
     await migrateFromLocalStorage(); // Migrate old data if present
     loadSettings();
     renderDashboard();
+    renderFormulaBuilder();
   }
 });
 
-export function switchTab(event: any) {
-  document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+export function customPrompt(title: string, message: string, defaultValue: string = "", autocompleteOptions?: string[]): Promise<string | null> {
+  return new Promise((resolve) => {
+      const modal = document.getElementById("custom-modal");
+      const titleEl = document.getElementById("modal-title");
+      const messageEl = document.getElementById("modal-message");
+      const inputEl = document.getElementById("modal-input") as HTMLInputElement;
+      const btnOk = document.getElementById("modal-ok");
+      const btnCancel = document.getElementById("modal-cancel");
 
-  const target = event.currentTarget as HTMLElement;
-  target.classList.add('active');
-  const tabId = target.getAttribute('data-tab');
-  if (tabId) {
-    document.getElementById(tabId)?.classList.add('active');
+      if (!modal || !titleEl || !messageEl || !inputEl || !btnOk || !btnCancel) {
+          resolve(null);
+          return;
+      }
+
+      let dataList = document.getElementById("modal-datalist") as HTMLDataListElement;
+      if (!dataList) {
+          dataList = document.createElement("datalist");
+          dataList.id = "modal-datalist";
+          inputEl.parentNode?.appendChild(dataList);
+      }
+      dataList.innerHTML = "";
+      if (autocompleteOptions && autocompleteOptions.length > 0) {
+          inputEl.setAttribute("list", "modal-datalist");
+          autocompleteOptions.forEach(opt => {
+              const option = document.createElement("option");
+              option.value = opt;
+              dataList.appendChild(option);
+          });
+      } else {
+          inputEl.removeAttribute("list");
+      }
+
+      titleEl.innerText = title;
+      messageEl.innerText = message;
+      inputEl.value = defaultValue;
+      modal.style.display = "flex";
+      inputEl.focus();
+      
+      inputEl.onkeydown = (e) => { if (e.key === "Enter") btnOk.click(); };
+
+      const cleanup = () => {
+          modal.style.display = "none";
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+          inputEl.onkeydown = null;
+      };
+
+      btnOk.onclick = () => { cleanup(); resolve(inputEl.value); };
+      btnCancel.onclick = () => { cleanup(); resolve(null); };
+  });
+}
+
+export function customConfirm(title: string, message: string, confirmText: string = "Yes"): Promise<boolean> {
+  return new Promise((resolve) => {
+      const modal = document.getElementById("custom-confirm-modal");
+      const titleEl = document.getElementById("confirm-modal-title");
+      const messageEl = document.getElementById("confirm-modal-message");
+      const btnYes = document.getElementById("confirm-modal-yes");
+      const btnNo = document.getElementById("confirm-modal-no");
+
+      if (!modal || !titleEl || !messageEl || !btnYes || !btnNo) {
+          resolve(false);
+          return;
+      }
+
+      titleEl.innerText = title;
+      messageEl.innerText = message;
+      btnYes.innerText = confirmText;
+      modal.style.display = "flex";
+
+      const cleanup = () => {
+          modal.style.display = "none";
+          btnYes.onclick = null;
+          btnNo.onclick = null;
+      };
+
+      btnYes.onclick = () => { cleanup(); resolve(true); };
+      btnNo.onclick = () => { cleanup(); resolve(false); };
+  });
+}
+
+export function customSortPrompt(title: string, message: string, items: string[]): Promise<string[] | null> {
+  return new Promise((resolve) => {
+      const modal = document.getElementById("custom-sort-modal");
+      const titleEl = document.getElementById("sort-modal-title");
+      const messageEl = document.getElementById("sort-modal-message");
+      const listEl = document.getElementById("sort-modal-list");
+      const btnOk = document.getElementById("sort-modal-ok");
+      const btnCancel = document.getElementById("sort-modal-cancel");
+
+      if (!modal || !titleEl || !messageEl || !listEl || !btnOk || !btnCancel) {
+          resolve(null);
+          return;
+      }
+
+      titleEl.innerText = title;
+      messageEl.innerText = message;
+      listEl.innerHTML = "";
+
+      items.forEach((item) => {
+          const li = document.createElement("li");
+          li.className = "sortable-item";
+          li.draggable = true;
+          li.innerHTML = `<i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888;"></i><span>${item}</span>`;
+          li.dataset.value = item;
+          
+          li.addEventListener("dragstart", () => li.classList.add("dragging"));
+          li.addEventListener("dragend", () => li.classList.remove("dragging"));
+          
+          listEl.appendChild(li);
+      });
+      
+      const handleDragOver = (e: DragEvent) => {
+          e.preventDefault();
+          const dragging = listEl.querySelector('.dragging') as HTMLElement;
+          if (!dragging) return;
+          
+          const siblings = [...listEl.querySelectorAll('.sortable-item:not(.dragging)')] as HTMLElement[];
+          const nextSibling = siblings.find(sibling => {
+              const box = sibling.getBoundingClientRect();
+              return (e.clientY - box.top - box.height / 2) < 0;
+          });
+          
+          if (nextSibling) {
+              listEl.insertBefore(dragging, nextSibling);
+          } else {
+              listEl.appendChild(dragging);
+          }
+      };
+      
+      listEl.addEventListener("dragover", handleDragOver);
+
+      modal.style.display = "flex";
+
+      const cleanup = () => {
+          modal.style.display = "none";
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+          listEl.removeEventListener("dragover", handleDragOver);
+      };
+
+      btnOk.onclick = () => {
+          const newOrder = Array.from(listEl.children).map((li) => (li as HTMLElement).dataset.value as string);
+          cleanup();
+          resolve(newOrder);
+      };
+      btnCancel.onclick = () => { cleanup(); resolve(null); };
+  });
+}
+
+export interface FormField {
+    id: string;
+    label: string;
+    type: 'text' | 'select' | 'autocomplete';
+    options?: string[];
+    value?: string;
+    disabled?: boolean;
+}
+
+export function customFormPrompt(title: string, message: string, fields: FormField[]): Promise<Record<string, string> | null> {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("custom-form-modal");
+        const titleEl = document.getElementById("form-modal-title");
+        const messageEl = document.getElementById("form-modal-message");
+        const inputsContainer = document.getElementById("form-modal-inputs");
+        const btnOk = document.getElementById("form-modal-ok");
+        const btnCancel = document.getElementById("form-modal-cancel");
+
+        if (!modal || !titleEl || !messageEl || !inputsContainer || !btnOk || !btnCancel) {
+            resolve(null);
+            return;
+        }
+
+        titleEl.innerText = title;
+        messageEl.innerText = message;
+        inputsContainer.innerHTML = "";
+
+        const inputElements: { id: string, el: HTMLInputElement | HTMLSelectElement }[] = [];
+
+        fields.forEach(f => {
+            const fieldDiv = document.createElement("div");
+            fieldDiv.className = "ms-TextField";
+            fieldDiv.style.marginBottom = "12px";
+
+            const label = document.createElement("label");
+            label.className = "ms-Label";
+            label.innerText = f.label;
+            fieldDiv.appendChild(label);
+
+            if (f.type === 'select') {
+                const select = document.createElement("select");
+                select.className = "ms-Dropdown-title";
+                if (f.disabled) select.disabled = true;
+                (f.options || []).forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt;
+                    option.text = opt;
+                    select.appendChild(option);
+                });
+                if (f.value !== undefined) select.value = f.value;
+                fieldDiv.appendChild(select);
+                inputElements.push({ id: f.id, el: select });
+            } else if (f.type === 'autocomplete') {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "ms-TextField-field";
+                if (f.disabled) input.disabled = true;
+                if (f.value !== undefined) input.value = f.value;
+                
+                const dataListId = `datalist-${f.id}-${Date.now()}`;
+                input.setAttribute("list", dataListId);
+                
+                const dataList = document.createElement("datalist");
+                dataList.id = dataListId;
+                (f.options || []).forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt;
+                    dataList.appendChild(option);
+                });
+                
+                fieldDiv.appendChild(input);
+                fieldDiv.appendChild(dataList);
+                inputElements.push({ id: f.id, el: input });
+            } else {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "ms-TextField-field";
+                if (f.disabled) input.disabled = true;
+                if (f.value !== undefined) input.value = f.value;
+                fieldDiv.appendChild(input);
+                inputElements.push({ id: f.id, el: input });
+            }
+
+            inputsContainer.appendChild(fieldDiv);
+        });
+
+        modal.style.display = "flex";
+
+        const cleanup = () => {
+            modal.style.display = "none";
+            btnOk.onclick = null;
+            btnCancel.onclick = null;
+        };
+
+        btnOk.onclick = () => {
+            const result: Record<string, string> = {};
+            inputElements.forEach(item => {
+                result[item.id] = item.el.value;
+            });
+            cleanup();
+            resolve(result);
+        };
+        btnCancel.onclick = () => { cleanup(); resolve(null); };
+    });
+}
+
+const formulaDefinitions: Record<string, { id: string, label: string, required: boolean }[]> = {
+    "GET": [
+        { id: "param-id", label: "Record ID", required: false },
+        { id: "param-fieldName", label: "Field Name", required: false },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false }
+    ],
+    "SEARCH": [
+        { id: "param-searchField", label: "Search Field", required: true },
+        { id: "param-searchValue", label: "Search Value", required: true },
+        { id: "param-returnField", label: "Return Field", required: true },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false }
+    ],
+    "FILTER": [
+        { id: "param-searchField", label: "Search Field", required: true },
+        { id: "param-searchValue", label: "Search Value", required: true },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false },
+        { id: "param-exactMatch", label: "Exact Match (TRUE/FALSE)", required: false }
+    ],
+    "SUM": [
+        { id: "param-sumField", label: "Sum Field", required: true },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false }
+    ],
+    "SUMIFS": [
+        { id: "param-sumField", label: "Sum Field", required: true },
+        { id: "param-criteriaField", label: "Criteria Field", required: true },
+        { id: "param-criteriaValue", label: "Criteria Value", required: true },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false }
+    ],
+    "JOIN": [
+        { id: "param-baseTableName", label: "Base Table Name", required: true },
+        { id: "param-foreignKeyField", label: "Foreign Key Field", required: true },
+        { id: "param-foreignTableName", label: "Foreign Table Name", required: true },
+        { id: "param-foreignReturnField", label: "Foreign Return Field", required: true }
+    ]
+};
+
+export async function renderFormulaBuilder() {
+    const select = document.getElementById("formula-select") as HTMLSelectElement;
+    const container = document.getElementById("formula-inputs-container");
+    if (!select || !container) return;
+
+    const formula = select.value;
+    const fields = formulaDefinitions[formula] || [];
+
+    container.innerHTML = "";
+
+    const storedData = await idbGet("DC_STORE");
+    let store: any = {};
+    let tables: string[] = [];
+    if (storedData) {
+        store = JSON.parse(storedData);
+        tables = Object.keys(store);
+    }
+    let defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    if (!defaultTable && tables.length > 0) defaultTable = tables[0];
+
+    const inputRefs: { id: string, el: HTMLInputElement | HTMLSelectElement, datalist?: HTMLDataListElement }[] = [];
+
+    const getTargetTableForInput = (inputId: string): string => {
+        if (formula === "JOIN") {
+            if (inputId === "param-foreignReturnField") {
+                const fInput = document.getElementById("param-foreignTableName") as HTMLInputElement;
+                return fInput && fInput.value.trim() !== "" ? fInput.value.trim() : "";
+            } else {
+                const bInput = document.getElementById("param-baseTableName") as HTMLInputElement;
+                return bInput && bInput.value.trim() !== "" ? bInput.value.trim() : defaultTable;
+            }
+        } else {
+            const tInput = document.getElementById("param-dataTableName") as HTMLInputElement;
+            return tInput && tInput.value.trim() !== "" ? tInput.value.trim() : defaultTable;
+        }
+    };
+
+    const updateDataLists = () => {
+        inputRefs.forEach(ref => {
+            const targetEl = ref.datalist || ref.el;
+            const currentVal = ref.el.value;
+            targetEl.innerHTML = "";
+            
+            if (ref.el.tagName === "SELECT") {
+                const emptyOpt = document.createElement("option");
+                emptyOpt.value = "";
+                emptyOpt.text = "Select...";
+                targetEl.appendChild(emptyOpt);
+            }
+
+            if (ref.id.toLowerCase().includes("tablename")) {
+                tables.forEach(t => {
+                    const opt = document.createElement("option");
+                    opt.value = t;
+                    targetEl.appendChild(opt);
+                });
+                return;
+            }
+
+            if (ref.id === "param-exactMatch") {
+                ["TRUE", "FALSE"].forEach(t => {
+                    const opt = document.createElement("option");
+                    opt.value = t;
+                    opt.text = t;
+                    targetEl.appendChild(opt);
+                });
+                if (ref.el.tagName === "SELECT" && ["TRUE", "FALSE"].includes(currentVal)) ref.el.value = currentVal;
+                return;
+            }
+
+            const tName = getTargetTableForInput(ref.id);
+            const dataSet = store[tName];
+            if (!dataSet) return;
+
+            let options: string[] = [];
+            if (ref.id.toLowerCase().includes("field")) {
+                options = dataSet.fields || [];
+            } else if (ref.id === "param-id") {
+                const idField = dataSet.idField || dataSet.fields[0];
+                options = (dataSet.records || []).map((r: any) => String(r[idField]));
+            }
+
+            // Remove duplicates and empty strings
+            options = [...new Set(options)].filter(o => o !== undefined && o !== null && String(o).trim() !== "");
+
+            options.forEach(opt => {
+                const optionElement = document.createElement("option");
+                optionElement.value = opt;
+                if (ref.el.tagName === "SELECT") optionElement.text = opt;
+                targetEl.appendChild(optionElement);
+            });
+
+            if (ref.el.tagName === "SELECT" && options.includes(currentVal)) {
+                ref.el.value = currentVal;
+            }
+        });
+    };
+
+    fields.forEach(f => {
+        const fieldDiv = document.createElement("div");
+        fieldDiv.className = "ms-TextField";
+        fieldDiv.style.marginBottom = "8px";
+
+        const label = document.createElement("label");
+        label.className = "ms-Label";
+        label.innerHTML = `${f.label} ${f.required ? '<span style="color:#d13438;">*</span>' : '<span style="color:#888;font-weight:normal;">(Optional)</span>'}`;
+
+        const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch";
+        let inputEl: HTMLInputElement | HTMLSelectElement;
+        let dataList: HTMLDataListElement | undefined;
+
+        if (isSelect) {
+            inputEl = document.createElement("select");
+            inputEl.id = f.id;
+            inputEl.className = "ms-Dropdown-title";
+            inputRefs.push({ id: f.id, el: inputEl });
+        } else {
+            inputEl = document.createElement("input");
+            inputEl.type = "text";
+            inputEl.id = f.id;
+            inputEl.className = "ms-TextField-field";
+            inputEl.autocomplete = "off";
+
+            const listId = `datalist-${f.id}`;
+            inputEl.setAttribute("list", listId);
+            
+            dataList = document.createElement("datalist");
+            dataList.id = listId;
+
+            inputRefs.push({ id: f.id, el: inputEl, datalist: dataList });
+
+            if (f.id.toLowerCase().includes("tablename")) {
+                inputEl.addEventListener("input", updateDataLists);
+                inputEl.addEventListener("change", updateDataLists);
+            }
+        }
+
+        fieldDiv.appendChild(label);
+        fieldDiv.appendChild(inputEl);
+        if (dataList) fieldDiv.appendChild(dataList);
+        container.appendChild(fieldDiv);
+    });
+
+    updateDataLists();
+}
+
+export async function insertBuiltFormula() {
+    const status = document.getElementById("status-text");
+    try {
+        const select = document.getElementById("formula-select") as HTMLSelectElement;
+        const formula = select.value;
+        const fields = formulaDefinitions[formula] || [];
+
+        let args: string[] = [];
+
+        for (let i = 0; i < fields.length; i++) {
+            const f = fields[i];
+            const input = document.getElementById(f.id) as HTMLInputElement | HTMLSelectElement;
+            let val = input.value.trim();
+
+            if (f.required && val === "") {
+                throw new Error(`'${f.label}' is required.`);
+            }
+
+            if (val === "") {
+                args.push("");
+            } else {
+                if (val.toUpperCase() === "TRUE" || val.toUpperCase() === "FALSE") {
+                    args.push(val.toUpperCase());
+                } else if (!isNaN(Number(val))) {
+                    args.push(val);
+                } else if (val.startsWith('"') && val.endsWith('"')) {
+                    args.push(val);
+                } else if (/^('?[^'!]+'?!)?\$?[A-Za-z]+\$?[0-9]+(:\$?[A-Za-z]+\$?[0-9]+)?$/.test(val)) {
+                    args.push(val.toUpperCase()); // Preserve cell references
+                } else {
+                    args.push(`"${val}"`); // Auto-quote simple text
+                }
+            }
+        }
+
+        // Remove trailing empty arguments for cleaner formula
+        while (args.length > 0 && args[args.length - 1] === "") {
+            args.pop();
+        }
+
+        const formulaStr = `=DC.${formula}(${args.join(", ")})`;
+
+        await Excel.run(async (context) => {
+            const cell = context.workbook.getActiveCell();
+            cell.formulas = [[formulaStr]];
+            await context.sync();
+        });
+
+        if (status) {
+            status.innerText = `Inserted formula: ${formulaStr}`;
+            status.style.color = "green";
+        }
+
+    } catch (error) {
+        if (status) {
+            status.innerText = error.message;
+            status.style.color = "red";
+        }
+    }
+}
+
+export function toggleSettings() {
+  const settingsView = document.getElementById('settings-view');
+  const mainView = document.getElementById('main-view');
+  const settingsBtn = document.getElementById('settings-button');
+  const isSettingsOpen = settingsView?.style.display === 'block';
+
+  settingsBtn?.classList.remove('active');
+
+  if (isSettingsOpen) {
+    settingsView.style.display = 'none';
+    mainView.style.display = 'block';
+  } else {
+    settingsView.style.display = 'block';
+    mainView.style.display = 'none';
+    settingsBtn?.classList.add('active');
   }
 }
 
@@ -142,10 +672,7 @@ export async function finishCapture() {
       throw new Error("The selected ID column must have a valid header.");
     }
 
-    // Reorder fields
     const fields = [...originalHeaders];
-    fields.splice(idIndex, 1);
-    fields.unshift(idColumn);
 
     let store: any = {};
     const existingStore = await idbGet("DC_STORE");
@@ -162,6 +689,7 @@ export async function finishCapture() {
 
     const dataSet = {
       dataTableName: dataName,
+      idField: idColumn,
       revision: rev,
       history: history,
       fields: fields,
@@ -187,6 +715,14 @@ export async function finishCapture() {
     if (step2Div) step2Div.style.display = "none";
     (document.getElementById("data-name") as HTMLInputElement).value = "";
     pendingCaptureData = null;
+
+    const captureAccordion = document.getElementById("capture-accordion");
+    const captureContent = document.getElementById("capture-content");
+    if (captureAccordion) captureAccordion.classList.remove("active");
+    if (captureContent) captureContent.classList.remove("show");
+
+    await idbSet("DC_DEFAULT_DATA_TABLE", dataName);
+    await idbSet("DC_DEFAULT_REVISION", String(rev));
 
     renderDashboard();
     refreshFormulas(true);
@@ -214,11 +750,6 @@ export async function replaceTableData(dataTableName: string) {
       const headers = values[0];
       const dataRows = values.slice(1);
 
-      const idColumn = headers[0];
-      if (!idColumn || String(idColumn).trim() === "") {
-        throw new Error("The first column must have a valid header to serve as the Record ID.");
-      }
-
       let store: any = {};
       const existingStore = await idbGet("DC_STORE");
       if (existingStore) {
@@ -230,6 +761,12 @@ export async function replaceTableData(dataTableName: string) {
       }
 
       const dataSet = store[dataTableName];
+      const existingIdField = dataSet.idField || dataSet.fields[0];
+
+      if (!headers.includes(existingIdField)) {
+        throw new Error(`The selected range must include the original ID column: '${existingIdField}'.`);
+      }
+
       const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
       const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
       const isLatest = selectedRev === (dataSet.revision || 1);
@@ -253,7 +790,7 @@ export async function replaceTableData(dataTableName: string) {
       await idbSet("DC_STORE", JSON.stringify(store));
       
       if (status) {
-        status.innerText = isLatest ? `Replaced '${dataTableName}' with ${dataRows.length} new records. (ID: "${idColumn}")` : `Replaced Rev ${selectedRev} of '${dataTableName}' with ${dataRows.length} records.`;
+        status.innerText = isLatest ? `Replaced '${dataTableName}' with ${dataRows.length} new records. (ID: "${existingIdField}")` : `Replaced Rev ${selectedRev} of '${dataTableName}' with ${dataRows.length} records.`;
         status.style.color = "green";
       }
       renderDashboard();
@@ -267,6 +804,66 @@ export async function replaceTableData(dataTableName: string) {
   }
 }
 
+export async function captureNewRevision(dataTableName: string) {
+  const status = document.getElementById("status-text");
+  try {
+    await Excel.run(async (context) => {
+      const range = context.workbook.getSelectedRange();
+      range.load("values");
+      await context.sync();
+
+      const values = range.values;
+      if (values.length < 2) {
+        throw new Error("Select a range with headers and data.");
+      }
+
+      const headers = values[0];
+      const dataRows = values.slice(1);
+
+      let store: any = {};
+      const existingStore = await idbGet("DC_STORE");
+      if (existingStore) {
+        store = JSON.parse(existingStore);
+      }
+
+      if (!store[dataTableName]) {
+        throw new Error(`Data table '${dataTableName}' not found.`);
+      }
+
+      const dataSet = store[dataTableName];
+      const existingIdField = dataSet.idField || dataSet.fields[0];
+
+      if (!headers.includes(existingIdField)) {
+        throw new Error(`The selected range must include the original ID column: '${existingIdField}'.`);
+      }
+
+      const currentRev = dataSet.revision || 1;
+      dataSet.history = dataSet.history || {};
+      dataSet.history[currentRev] = {
+        fields: [...dataSet.fields],
+        records: JSON.parse(JSON.stringify(dataSet.records))
+      };
+      
+      dataSet.revision = currentRev + 1;
+      dataSet.fields = headers;
+      dataSet.records = dataRows.map((row: any[]) => {
+        let record: any = {};
+        headers.forEach((header, index) => { record[header] = row[index]; });
+        return record;
+      });
+
+      await idbSet("DC_STORE", JSON.stringify(store));
+      await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+      
+      if (status) { status.innerText = `Captured Rev ${dataSet.revision} for '${dataTableName}' with ${dataRows.length} records.`; status.style.color = "green"; }
+      renderDashboard();
+      refreshFormulas(true);
+    });
+  } catch (error) {
+    if (status) { status.innerText = "Error capturing new revision: " + error.message; status.style.color = "red"; }
+  }
+}
+
 export async function renderDashboard() {
   const list = document.getElementById("data-table-list");
   if (!list) return;
@@ -274,10 +871,12 @@ export async function renderDashboard() {
   list.innerHTML = "";
   const storedData = await idbGet("DC_STORE");
   const defaultSelect = document.getElementById("default-data-table-select") as HTMLSelectElement;
+  const defaultRevSelect = document.getElementById("default-revision-select") as HTMLSelectElement;
 
   if (!storedData) {
     list.innerHTML = "<li>No data tables stored yet.</li>";
     if (defaultSelect) defaultSelect.innerHTML = "";
+    if (defaultRevSelect) defaultRevSelect.innerHTML = "";
     return;
   }
 
@@ -306,6 +905,10 @@ export async function renderDashboard() {
     if (!store[key] || typeof store[key] !== "object" || Array.isArray(store[key])) {
       delete store[key];
       needsSave = true;
+    } else if (!store[key].idField && store[key].fields && store[key].fields.length > 0) {
+      const origFields = store[key].history && store[key].history[1] ? store[key].history[1].fields : store[key].fields;
+      store[key].idField = origFields[0];
+      needsSave = true;
     }
   }
 
@@ -317,12 +920,12 @@ export async function renderDashboard() {
   if (keys.length === 0) {
     list.innerHTML = "<li>No data tables stored yet.</li>";
     if (defaultSelect) defaultSelect.innerHTML = "";
+    if (defaultRevSelect) defaultRevSelect.innerHTML = "";
     return;
   }
 
   // Setup Default Data Table dropdown
   if (defaultSelect) {
-    const defaultRevSelect = document.getElementById("default-revision-select") as HTMLSelectElement;
     defaultSelect.innerHTML = "";
 
     keys.forEach(key => {
@@ -361,6 +964,12 @@ export async function renderDashboard() {
         defaultRevSelect.selectedIndex = 0;
         await idbSet("DC_DEFAULT_REVISION", defaultRevSelect.value);
       }
+
+      const localRevSelect = document.getElementById(`fb-rev-${tableName}`) as HTMLSelectElement;
+      if (localRevSelect && localRevSelect.value !== defaultRevSelect.value) {
+          localRevSelect.value = defaultRevSelect.value;
+          localRevSelect.dispatchEvent(new Event('change'));
+      }
     };
 
     await updateDefaultRevOptions(currentDefault);
@@ -373,6 +982,12 @@ export async function renderDashboard() {
     if (defaultRevSelect) {
       defaultRevSelect.onchange = async () => {
         await idbSet("DC_DEFAULT_REVISION", defaultRevSelect.value);
+        
+        const localRevSelect = document.getElementById(`fb-rev-${defaultSelect.value}`) as HTMLSelectElement;
+        if (localRevSelect && localRevSelect.value !== defaultRevSelect.value) {
+            localRevSelect.value = defaultRevSelect.value;
+            localRevSelect.dispatchEvent(new Event('change'));
+        }
       };
     }
   }
@@ -383,269 +998,235 @@ export async function renderDashboard() {
     const rev = dataTable.revision || 1;
     
     const li = document.createElement("li");
-    li.className = "data-table-item";
+    li.style.listStyle = "none";
+    li.style.marginBottom = "16px";
     
-    // Header (Clickable to expand/collapse)
-    const header = document.createElement("div");
-    header.className = "data-table-header";
-    header.innerHTML = `<div><span style="display:inline-block; width:15px;">&#9654;</span> <strong>${key}</strong></div> <span style="font-weight: normal; font-size: 12px; color: #666;">(Rev ${rev} | ${count} records)</span>`;
+    const header = document.createElement("button");
+    header.className = "accordion";
+    header.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <div><i class="ms-Icon ms-Icon--Table" style="margin-right: 8px;"></i> ${key}</div>
+          <div style="font-size:12px; font-weight:normal; opacity:0.8;">Rev ${rev} &bull; ${count} rows</div>
+      </div>
+    `;
     
-    // Details container (Hidden by default)
     const details = document.createElement("div");
-    details.className = "data-table-details";
-    details.style.display = "none";
-    details.style.marginTop = "16px";
+    details.className = "accordion-content";
     
     header.onclick = () => {
-      const isHidden = details.style.display === "none";
-      details.style.display = isHidden ? "block" : "none";
-      header.innerHTML = `<div><span style="display:inline-block; width:15px;">${isHidden ? '&#9660;' : '&#9654;'}</span> <strong>${key}</strong></div> <span style="font-weight: normal; font-size: 12px; color: #666;">(Rev ${rev} | ${count} records)</span>`;
+      header.classList.toggle("active");
+      details.classList.toggle("show");
     };
 
     const insertTableBtn = document.createElement("button");
     insertTableBtn.innerHTML = '<i class="ms-Icon ms-Icon--Table" style="margin-right:8px;"></i> Insert Table';
-    insertTableBtn.className = "ms-Button ms-Button--primary";
-    insertTableBtn.style.width = "100%";
+    insertTableBtn.className = "ms-Button ms-Button--default w-100";
     insertTableBtn.onclick = () => insertTable(key);
     
     const replaceBtn = document.createElement("button");
-    replaceBtn.innerHTML = '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Data';
-    replaceBtn.className = "ms-Button ms-Button--default";
-    replaceBtn.style.width = "100%";
+    replaceBtn.innerHTML = '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Current Version';
+    replaceBtn.className = "ms-Button ms-Button--default w-100";
     replaceBtn.onclick = () => replaceTableData(key);
 
     const snapshotBtn = document.createElement("button");
     snapshotBtn.innerHTML = '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Snapshot';
-    snapshotBtn.className = "ms-Button ms-Button--default";
-    snapshotBtn.style.width = "100%";
+    snapshotBtn.className = "ms-Button ms-Button--primary w-100";
     snapshotBtn.onclick = () => createSnapshot(key);
 
-    const clearHistoryBtn = document.createElement("button");
-    clearHistoryBtn.innerHTML = '<i class="ms-Icon ms-Icon--Broom" style="margin-right:8px;"></i> Clear History';
-    clearHistoryBtn.className = "ms-Button ms-Button--default";
-    clearHistoryBtn.style.width = "100%";
-    clearHistoryBtn.onclick = () => clearTableHistory(key);
+    const deleteVersionBtn = document.createElement("button");
+    deleteVersionBtn.innerHTML = '<i class="ms-Icon ms-Icon--RemoveEvent" style="margin-right:8px;"></i> Delete Version';
+    deleteVersionBtn.className = "ms-Button ms-Button--danger w-100";
+    deleteVersionBtn.onclick = () => deleteCurrentVersion(key);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.innerHTML = '<i class="ms-Icon ms-Icon--Delete" style="margin-right:8px;"></i> Delete Table';
-    deleteBtn.className = "ms-Button ms-Button--default";
-    deleteBtn.style.color = "red";
-    deleteBtn.style.width = "100%";
+    deleteBtn.className = "ms-Button ms-Button--danger w-100";
     deleteBtn.onclick = () => deleteDataTable(key);
     
-    // 0. Target Revision (Top of details)
-    const revSelectContainer = document.createElement("div");
-    revSelectContainer.style.marginBottom = "12px";
-    revSelectContainer.innerHTML = `<label style="font-size:12px; font-weight:600; color:var(--text-color); margin-right:8px;">Target Revision:</label>`;
-
-    const revSelect = document.createElement("select");
-    revSelect.id = `fb-rev-${key}`;
-    revSelect.className = "ms-Dropdown-title";
-    revSelect.style.width = "auto";
-    revSelect.style.display = "inline-block";
-    for (let i = rev; i >= 1; i--) {
-      if (i === rev || (dataTable.history && dataTable.history[i])) {
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.text = `Revision ${i}${i === rev ? " (Latest)" : ""}`;
-        revSelect.appendChild(opt);
-      }
-    }
-    revSelectContainer.appendChild(revSelect);
-    details.appendChild(revSelectContainer);
-
-    const idInputContainer = document.createElement("div");
-    idInputContainer.style.position = "relative";
-    idInputContainer.style.marginBottom = "5px";
-
-    const idInput = document.createElement("input");
-    idInput.id = `fb-id-${key}`;
-    idInput.type = "text";
-    idInput.placeholder = "Search for Record ID...";
-    idInput.className = "ms-TextField-field";
-    idInput.autocomplete = "off";
-    
-    const idResults = document.createElement("div");
-    idResults.className = "search-results-dropdown";
-    idResults.style.display = "none";
-
-    idInput.oninput = () => {
-      const searchTerm = idInput.value.toLowerCase();
-      idResults.innerHTML = "";
-      if (!searchTerm) {
-        idResults.style.display = "none";
-        return;
-      }
-
-      const selectedRev = parseInt(revSelect.value);
-      let targetDataSet = dataTable;
-      if (selectedRev !== rev && dataTable.history && dataTable.history[selectedRev]) {
-        targetDataSet = dataTable.history[selectedRev];
-      }
-
-      if (targetDataSet.records && targetDataSet.fields && targetDataSet.fields.length > 0) {
-        const idField = targetDataSet.fields[0];
-        const matches = targetDataSet.records.filter((record: any) => 
-          record[idField] !== undefined && String(record[idField]).toLowerCase().includes(searchTerm)
-        ).slice(0, 50);
-
-        if (matches.length > 0) {
-          matches.forEach((record: any) => {
-            const resultItem = document.createElement("div");
-            resultItem.className = "search-result-item";
-            resultItem.innerText = String(record[idField]);
-            resultItem.onmousedown = () => {
-              idInput.value = String(record[idField]);
-              idResults.style.display = "none";
-            };
-            idResults.appendChild(resultItem);
-          });
-          idResults.style.display = "block";
-        } else {
-          idResults.style.display = "none";
-        }
-      }
-    };
-
-    idInput.onblur = () => { setTimeout(() => { idResults.style.display = 'none'; }, 150); };
-    idInput.onfocus = () => { if (idInput.value) { idInput.dispatchEvent(new Event('input')); } };
-
-    idInputContainer.appendChild(idInput);
-    
-    const fieldSelect = document.createElement("select");
-    fieldSelect.id = `fb-field-${key}`;
-    fieldSelect.className = "ms-Dropdown-title";
-    fieldSelect.style.marginBottom = "8px";
-    
-    const populateFields = () => {
-      const selectedRev = parseInt(revSelect.value);
-      let targetDataSet = dataTable;
-      if (selectedRev !== rev && dataTable.history && dataTable.history[selectedRev]) {
-        targetDataSet = dataTable.history[selectedRev];
-      }
-      fieldSelect.innerHTML = "";
-      if (targetDataSet.fields) {
-        targetDataSet.fields.forEach((field: string) => {
-          const opt = document.createElement("option");
-          opt.value = field;
-          opt.text = field;
-          fieldSelect.appendChild(opt);
-        });
-      }
-    };
-    populateFields();
-    
-    revSelect.onchange = () => {
-      populateFields();
-      idInput.value = "";
-      idResults.style.display = "none";
-      
-      const isLatest = parseInt(revSelect.value) === rev;
-      replaceBtn.innerHTML = isLatest ? '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Data' : '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Rev Data';
-      snapshotBtn.innerHTML = isLatest ? '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Snapshot' : '<i class="ms-Icon ms-Icon--Undo" style="margin-right:8px;"></i> Restore as Active';
-      deleteBtn.innerHTML = isLatest ? '<i class="ms-Icon ms-Icon--Delete" style="margin-right:8px;"></i> Delete Table' : '<i class="ms-Icon ms-Icon--Delete" style="margin-right:8px;"></i> Delete Revision';
-    };
-    
-    const insertFormulaBtn = document.createElement("button");
-    insertFormulaBtn.innerHTML = '<i class="ms-Icon ms-Icon--Calculator" style="margin-right:8px;"></i> Insert DC.GET Formula';
-    insertFormulaBtn.className = "ms-Button ms-Button--primary";
-    insertFormulaBtn.style.width = "100%";
-    insertFormulaBtn.onclick = () => insertFormulaFor(key);
-    
-    const insertDropdownBtn = document.createElement("button");
-    insertDropdownBtn.innerHTML = '<i class="ms-Icon ms-Icon--Dropdown" style="margin-right:8px;"></i> Insert Headers Dropdown';
-    insertDropdownBtn.className = "ms-Button ms-Button--default";
-    insertDropdownBtn.style.width = "100%";
-    insertDropdownBtn.onclick = () => insertDropdown(key);
-
-    const editBtn = document.createElement("button");
-    editBtn.innerHTML = '<i class="ms-Icon ms-Icon--Edit" style="margin-right:8px;"></i> Edit Record';
-    editBtn.className = "ms-Button ms-Button--default";
-    editBtn.style.width = "100%";
-    editBtn.onclick = () => loadRecordForEdit(key, idInput.value);
-
     const exportCSVBtn = document.createElement("button");
     exportCSVBtn.innerHTML = '<i class="ms-Icon ms-Icon--Download" style="margin-right:8px;"></i> Export CSV';
-    exportCSVBtn.className = "ms-Button ms-Button--default";
-    exportCSVBtn.style.width = "100%";
+    exportCSVBtn.className = "ms-Button ms-Button--default w-100";
     exportCSVBtn.onclick = () => exportCSV(key);
 
-    // 1. EXCEL INTEGRATION GROUP
-    const excelGroup = document.createElement("div");
-    excelGroup.className = "action-group";
-    excelGroup.innerHTML = `<div class="action-group-title">Excel Integration</div>`;
-    excelGroup.appendChild(idInputContainer);
-    excelGroup.appendChild(fieldSelect);
-    
-    const excelBtns = document.createElement("div");
-    excelBtns.className = "button-group";
-    excelBtns.style.display = "flex";
-    excelBtns.style.flexDirection = "column";
-    excelBtns.style.gap = "8px";
-    excelBtns.appendChild(insertFormulaBtn);
-    excelBtns.appendChild(insertDropdownBtn);
-    excelBtns.appendChild(insertTableBtn);
-    excelGroup.appendChild(excelBtns);
-    details.appendChild(excelGroup);
+        const insertDropdownBtn = document.createElement("button");
+        insertDropdownBtn.innerHTML = '<i class="ms-Icon ms-Icon--Dropdown" style="margin-right:8px;"></i> Headers Dropdown';
+        insertDropdownBtn.className = "ms-Button ms-Button--default w-100";
+        insertDropdownBtn.onclick = () => insertDropdown(key);
 
-    // 2. DATA MANAGEMENT GROUP
-    const dataGroup = document.createElement("div");
-    dataGroup.className = "action-group";
-    dataGroup.innerHTML = `<div class="action-group-title">Data Management</div>`;
-    const dataBtns = document.createElement("div");
-    dataBtns.className = "button-group";
-    dataBtns.style.display = "flex";
-    dataBtns.style.flexDirection = "column";
-    dataBtns.style.gap = "8px";
-    dataBtns.appendChild(replaceBtn);
-    dataBtns.appendChild(editBtn);
-    dataBtns.appendChild(exportCSVBtn);
-    dataGroup.appendChild(dataBtns);
-    details.appendChild(dataGroup);
+        const editBtn = document.createElement("button");
+        editBtn.innerHTML = '<i class="ms-Icon ms-Icon--Edit" style="margin-right:8px;"></i> Edit Record';
+        editBtn.className = "ms-Button ms-Button--primary w-100";
 
-    // 3. VERSION CONTROL GROUP
-    const versionGroup = document.createElement("div");
-    versionGroup.className = "action-group";
-    versionGroup.innerHTML = `<div class="action-group-title">Version Control</div>`;
-    const versionBtns = document.createElement("div");
-    versionBtns.className = "button-group";
-    versionBtns.style.display = "flex";
-    versionBtns.style.flexDirection = "column";
-    versionBtns.style.gap = "8px";
-    versionBtns.appendChild(snapshotBtn);
-    versionBtns.appendChild(clearHistoryBtn);
-    versionBtns.appendChild(deleteBtn);
-    versionGroup.appendChild(versionBtns);
-    details.appendChild(versionGroup);
-    
-    const editFormDiv = document.createElement("div");
-    editFormDiv.id = `edit-form-container-${key}`;
-    editFormDiv.style.display = "none";
-    details.appendChild(editFormDiv);
+        const revSelectContainer = document.createElement("div");
+        revSelectContainer.style.marginBottom = "12px";
+        revSelectContainer.innerHTML = `<label style="font-size:12px; font-weight:600; color:var(--text-color); margin-right:8px;">Target Revision:</label>`;
+
+        const revSelect = document.createElement("select");
+        revSelect.id = `fb-rev-${key}`;
+        revSelect.className = "ms-Dropdown-title";
+        revSelect.style.width = "auto";
+        revSelect.style.display = "inline-block";
+        for (let i = rev; i >= 1; i--) {
+          if (i === rev || (dataTable.history && dataTable.history[i])) {
+            const opt = document.createElement("option");
+            opt.value = String(i);
+            opt.text = `Revision ${i}${i === rev ? " (Latest)" : ""}`;
+            revSelect.appendChild(opt);
+          }
+        }
+        
+        if (defaultSelect && defaultSelect.value === key && defaultRevSelect) {
+            if (Array.from(revSelect.options).some(o => o.value === defaultRevSelect.value)) {
+                revSelect.value = defaultRevSelect.value;
+            }
+        }
+
+        revSelectContainer.appendChild(revSelect);
+
+        editBtn.onclick = () => loadRecordForEdit(key);
+        
+        revSelect.onchange = async () => {
+          const isLatest = parseInt(revSelect.value) === rev;
+          replaceBtn.innerHTML = isLatest ? '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Current Version' : '<i class="ms-Icon ms-Icon--Sync" style="margin-right:8px;"></i> Replace Rev Data';
+          snapshotBtn.innerHTML = isLatest ? '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Snapshot' : '<i class="ms-Icon ms-Icon--Undo" style="margin-right:8px;"></i> Restore as Active';
+          
+          const fastAcc = accordions.find(a => a.theme === 'fast');
+          if (fastAcc) {
+              fastAcc.title = `Fast Tools (Rev ${revSelect.value})`;
+              const titleSpan = fastAcc.header.querySelector("span:not(.icon)");
+              if (titleSpan) titleSpan.innerHTML = fastAcc.title;
+          }
+
+          if (defaultSelect && defaultSelect.value === key && defaultRevSelect) {
+              if (defaultRevSelect.value !== revSelect.value) {
+                  defaultRevSelect.value = revSelect.value;
+                  await idbSet("DC_DEFAULT_REVISION", revSelect.value);
+              }
+          }
+        };
+
+        const accordions: { header: HTMLElement, content: HTMLElement, title: string, theme: 'default' | 'danger' | 'fast' }[] = [];
+
+        // Accordion Builder Helper
+        const buildAccordion = (title: string, elements: HTMLElement[], theme: 'default' | 'danger' | 'fast' = 'default', defaultOpen: boolean = false) => {
+            const accContainer = document.createElement("div");
+            accContainer.style.marginBottom = "8px";
+            
+            let headerClass = "inner-accordion-header";
+            let iconColor = "var(--primary-color)";
+            if (theme === 'danger') { headerClass += " danger"; iconColor = "#d13438"; }
+            else if (theme === 'fast') { headerClass += " fast"; iconColor = "#0078d4"; }
+            if (defaultOpen) { headerClass += " open"; }
+            
+            const accHeader = document.createElement("button");
+            accHeader.className = headerClass;
+            
+            const iconSpan = `<span class="icon" style="display:inline-block; width:15px; color: ${iconColor};">${defaultOpen ? '&#9660;' : '&#9654;'}</span>`;
+            accHeader.innerHTML = `${iconSpan}<span>${title}</span>`;
+            
+            const accContent = document.createElement("div");
+            accContent.className = "inner-accordion-content flex-col";
+            accContent.style.display = defaultOpen ? "flex" : "none";
+            
+            elements.forEach(el => accContent.appendChild(el));
+            
+            const accObj = { header: accHeader, content: accContent, title, theme };
+            accordions.push(accObj);
+
+            accHeader.onclick = () => {
+                const isHidden = accContent.style.display === "none";
+                
+                // Collapse all others
+                accordions.forEach(acc => {
+                    acc.content.style.display = "none";
+                    acc.header.classList.remove("open");
+                    let cColor = "var(--primary-color)";
+                    if (acc.theme === 'danger') cColor = "#d13438";
+                    else if (acc.theme === 'fast') cColor = "#0078d4";
+                    const accIcon = `<span class="icon" style="display:inline-block; width:15px; color: ${cColor};">&#9654;</span>`;
+                    acc.header.innerHTML = `${accIcon}<span>${acc.title}</span>`;
+                });
+
+                // Open if it was hidden
+                if (isHidden) {
+                    accContent.style.display = "flex";
+                    accHeader.classList.add("open");
+                    const openIcon = `<span class="icon" style="display:inline-block; width:15px; color: ${iconColor};">&#9660;</span>`;
+                    accHeader.innerHTML = `${openIcon}<span>${accObj.title}</span>`;
+                }
+            };
+            
+            accContainer.appendChild(accHeader);
+            accContainer.appendChild(accContent);
+            return accContainer;
+        };
+
+        const addColumnBtn = document.createElement("button");
+        addColumnBtn.innerHTML = '<i class="ms-Icon ms-Icon--Add" style="margin-right:8px;"></i> Add Column';
+        addColumnBtn.className = "ms-Button ms-Button--default w-100";
+        addColumnBtn.onclick = () => addColumn(key);
+
+        const resortColumnsBtn = document.createElement("button");
+        resortColumnsBtn.innerHTML = '<i class="ms-Icon ms-Icon--Sort" style="margin-right:8px;"></i> Resort Columns';
+        resortColumnsBtn.className = "ms-Button ms-Button--default w-100";
+        resortColumnsBtn.onclick = () => resortColumns(key);
+
+        const captureRevBtn = document.createElement("button");
+        captureRevBtn.innerHTML = '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Capture New Revision';
+        captureRevBtn.className = "ms-Button ms-Button--primary w-100";
+        captureRevBtn.onclick = () => captureNewRevision(key);
+
+        // 1. Fast Tools
+        const secFastTools = buildAccordion(`Fast Tools (Rev ${revSelect.value})`, [
+            insertDropdownBtn,
+            insertTableBtn,
+            editBtn
+        ], 'fast', true);
+
+        // 2. Version & Data Options
+        const sec1 = buildAccordion("Data & Version Options", [
+            revSelectContainer,
+            captureRevBtn,
+            replaceBtn,
+            addColumnBtn,
+            resortColumnsBtn,
+            snapshotBtn,
+            exportCSVBtn
+        ]);
+
+        // 3. Delete
+        const sec4 = buildAccordion("Delete Operations", [
+            deleteVersionBtn,
+            deleteBtn
+        ], 'danger');
+
+        details.appendChild(secFastTools);
+        details.appendChild(sec1);
+        details.appendChild(sec4);
 
     li.appendChild(header);
     li.appendChild(details);
     list.appendChild(li);
   });
+  
+  renderFormulaBuilder();
 }
 
 export async function deleteDataTable(dataTableName: string) {
+  const confirmed = await customConfirm("Delete Entire Table", `Are you sure you want to permanently delete the table '${dataTableName}' and all its history? This action cannot be undone.`, "Yes, Delete Everything");
+  if (!confirmed) return;
+
   const storedData = await idbGet("DC_STORE");
   if (storedData) {
     let store = JSON.parse(storedData);
-    const dataSet = store[dataTableName];
-    if (!dataSet) return;
-    
-    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
-    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
-    const isLatest = selectedRev === (dataSet.revision || 1);
-
-    if (isLatest) {
+    if (store[dataTableName]) {
       delete store[dataTableName];
-    } else {
-      if (dataSet.history && dataSet.history[selectedRev]) {
-        delete dataSet.history[selectedRev];
-      }
+    }
+
+    const defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    if (defaultTable === dataTableName) {
+      await idbSet("DC_DEFAULT_DATA_TABLE", "");
+      await idbSet("DC_DEFAULT_REVISION", "");
     }
 
     await idbSet("DC_STORE", JSON.stringify(store));
@@ -654,31 +1235,74 @@ export async function deleteDataTable(dataTableName: string) {
     
     const status = document.getElementById("status-text");
     if (status) {
-        status.innerText = isLatest ? `Deleted data table: ${dataTableName}` : `Deleted Revision ${selectedRev} of ${dataTableName}`;
+        status.innerText = `Deleted entire data table: ${dataTableName}`;
         status.style.color = "blue";
     }
   }
 }
 
-export async function clearTableHistory(dataTableName: string) {
+export async function deleteCurrentVersion(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
     const storedData = await idbGet("DC_STORE");
-    if (storedData) {
-      let store = JSON.parse(storedData);
-      if (store[dataTableName]) {
-        store[dataTableName].history = {};
-        await idbSet("DC_STORE", JSON.stringify(store));
-        renderDashboard();
+    if (!storedData) return;
+    let store = JSON.parse(storedData);
+    const dataSet = store[dataTableName];
+    if (!dataSet) return;
+
+    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
+    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
+    const isLatest = selectedRev === (dataSet.revision || 1);
+
+    const msg = isLatest ? `Are you sure you want to delete the current version of '${dataTableName}' and rollback to the previous revision?` : `Are you sure you want to delete historical Rev ${selectedRev} from '${dataTableName}'?`;
+    const confirmed = await customConfirm("Confirm Deletion", msg, "Yes, Delete");
+    if (!confirmed) return;
+
+    if (isLatest) {
+      const historyKeys = dataSet.history ? Object.keys(dataSet.history).map(Number).sort((a, b) => b - a) : [];
+      if (historyKeys.length > 0) {
+        const highestOldRev = historyKeys[0];
+        dataSet.fields = dataSet.history[highestOldRev].fields;
+        dataSet.records = dataSet.history[highestOldRev].records;
+        dataSet.revision = highestOldRev;
+        delete dataSet.history[highestOldRev];
+
         if (status) {
-          status.innerText = `Cleared old revisions for ${dataTableName}. Space reclaimed.`;
+          status.innerText = `Deleted current version. Rolled back to Rev ${highestOldRev}.`;
+          status.style.color = "green";
+        }
+      } else {
+        delete store[dataTableName];
+        if (status) {
+          status.innerText = `Deleted the only version. Table '${dataTableName}' removed.`;
+          status.style.color = "blue";
+        }
+      }
+    } else {
+      if (dataSet.history && dataSet.history[selectedRev]) {
+        delete dataSet.history[selectedRev];
+        if (status) {
+          status.innerText = `Deleted historical Rev ${selectedRev} from '${dataTableName}'.`;
           status.style.color = "green";
         }
       }
     }
+
+    await idbSet("DC_STORE", JSON.stringify(store));
+
+    const defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    if (defaultTable === dataTableName) {
+        let defaultRev = await idbGet("DC_DEFAULT_REVISION");
+        if (defaultRev === String(selectedRev)) {
+            await idbSet("DC_DEFAULT_REVISION", store[dataTableName] ? String(store[dataTableName].revision || 1) : "1");
+        }
+    }
+
+    renderDashboard();
+    refreshFormulas(true);
   } catch (error) {
     if (status) {
-      status.innerText = "Error clearing history: " + error.message;
+      status.innerText = "Error deleting version: " + error.message;
       status.style.color = "red";
     }
   }
@@ -731,6 +1355,10 @@ export async function createSnapshot(dataTableName: string) {
     }
 
     await idbSet("DC_STORE", JSON.stringify(store));
+    
+    // Automatically set the new revision as default!
+    await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+
     renderDashboard();
     if (!isLatest) refreshFormulas(true);
   } catch (error) {
@@ -745,87 +1373,62 @@ export async function createSnapshot(dataTableName: string) {
   }
 }
 
-export async function loadRecordForEdit(dataTableName: string, id: string) {
+export async function addColumn(dataTableName: string) {
   const status = document.getElementById("status-text");
-  if (!id) {
-      if (status) { status.innerText = "Please select a Record ID to edit."; status.style.color = "red"; }
-      return;
-  }
-
-  const storedData = await idbGet("DC_STORE");
-  if (!storedData) return;
-  const store = JSON.parse(storedData);
-  const dataSet = store[dataTableName];
-  if (!dataSet) return;
-
-  const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
-  const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
+  const colName = await customPrompt("Add Column", `Enter a new column name to add to '${dataTableName}':`);
   
-  let targetDataSet = dataSet;
-  if (selectedRev !== (dataSet.revision || 1) && dataSet.history && dataSet.history[selectedRev]) {
-      targetDataSet = dataSet.history[selectedRev];
-  }
+  if (!colName || colName.trim() === "") return;
 
-  const idField = targetDataSet.fields[0];
-  const record = targetDataSet.records.find((r: any) => String(r[idField]) === String(id));
+  try {
+    const storedData = await idbGet("DC_STORE");
+    if (!storedData) return;
+    let store = JSON.parse(storedData);
+    const dataSet = store[dataTableName];
+    if (!dataSet) return;
 
-  if (!record) {
-      if (status) { status.innerText = "Record not found."; status.style.color = "red"; }
+    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
+    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
+    const isLatest = selectedRev === (dataSet.revision || 1);
+
+    if (!isLatest) {
+      if (status) { status.innerText = "Cannot add column to a historical revision."; status.style.color = "red"; }
       return;
+    }
+
+    if (dataSet.fields.includes(colName)) {
+      if (status) { status.innerText = "Column already exists."; status.style.color = "red"; }
+      return;
+    }
+
+    // Create history backup before adding the column
+    dataSet.history = dataSet.history || {};
+    dataSet.history[dataSet.revision] = {
+      fields: [...dataSet.fields],
+      records: JSON.parse(JSON.stringify(dataSet.records))
+    };
+
+    dataSet.fields.push(colName);
+    dataSet.records.forEach((r: any) => { r[colName] = ""; });
+    dataSet.revision += 1;
+
+    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+    renderDashboard();
+    refreshFormulas(true);
+    
+    if (status) {
+      status.innerText = `Added column '${colName}'. Current is Rev ${dataSet.revision}.`;
+      status.style.color = "green";
+    }
+  } catch (error) {
+    if (status) {
+      status.innerText = "Error: " + error.message;
+      status.style.color = "red";
+    }
   }
-
-  const container = document.getElementById(`edit-form-container-${dataTableName}`);
-  if (!container) return;
-
-  container.innerHTML = `<h4 style="margin-top:0; color: var(--primary-color);">Editing: ${id}</h4>`;
-  container.className = "edit-form-container";
-  container.style.display = "block";
-
-  targetDataSet.fields.forEach((field: string) => {
-      const fieldDiv = document.createElement("div");
-      fieldDiv.className = "ms-TextField";
-      fieldDiv.style.marginBottom = "8px";
-
-      const label = document.createElement("label");
-      label.className = "ms-Label";
-      label.innerText = field;
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.value = record[field] !== undefined ? record[field] : "";
-      input.id = `edit-input-${dataTableName}-${field}`;
-      input.className = "ms-TextField-field";
-      if (field === idField) input.disabled = true; // Prevent changing the ID
-
-      fieldDiv.appendChild(label);
-      fieldDiv.appendChild(input);
-      container.appendChild(fieldDiv);
-  });
-
-  const saveBtn = document.createElement("button");
-  saveBtn.innerHTML = '<i class="ms-Icon ms-Icon--Save" style="margin-right:8px;"></i> Save Changes';
-  saveBtn.className = "ms-Button ms-Button--primary";
-  saveBtn.style.width = "100%";
-  saveBtn.onclick = () => saveRecordChanges(dataTableName, id, targetDataSet.fields, selectedRev);
-
-  const cancelBtn = document.createElement("button");
-  cancelBtn.innerHTML = '<i class="ms-Icon ms-Icon--Cancel" style="margin-right:8px;"></i> Cancel';
-  cancelBtn.className = "ms-Button ms-Button--default";
-  cancelBtn.style.width = "100%";
-  cancelBtn.onclick = () => { container.style.display = "none"; };
-
-  const editBtnGroup = document.createElement("div");
-  editBtnGroup.className = "button-group";
-  editBtnGroup.style.display = "flex";
-  editBtnGroup.style.flexDirection = "column";
-  editBtnGroup.style.gap = "8px";
-  editBtnGroup.style.marginTop = "12px";
-  editBtnGroup.appendChild(saveBtn);
-  editBtnGroup.appendChild(cancelBtn);
-  container.appendChild(editBtnGroup);
 }
 
-export async function saveRecordChanges(dataTableName: string, id: string, fields: string[], selectedRev?: number) {
+export async function resortColumns(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
     const storedData = await idbGet("DC_STORE");
@@ -834,27 +1437,105 @@ export async function saveRecordChanges(dataTableName: string, id: string, field
     const dataSet = store[dataTableName];
     if (!dataSet) return;
 
+    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
+    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
+    const isLatest = selectedRev === (dataSet.revision || 1);
+
+    if (!isLatest) {
+      if (status) { status.innerText = "Cannot resort columns of a historical revision."; status.style.color = "red"; }
+      return;
+    }
+
+    const newFields = await customSortPrompt("Resort Columns", `Drag and drop the columns below to reorder them for '${dataTableName}'.`, dataSet.fields);
+    
+    if (!newFields) return; // User cancelled
+
+    // If the order hasn't changed, do nothing
+    if (dataSet.fields.join(",") === newFields.join(",")) return;
+    
+    // Validation: must have the exact same elements
+    const oldFieldsSorted = [...dataSet.fields].sort().join(",");
+    const newFieldsSorted = [...newFields].sort().join(",");
+    
+    if (oldFieldsSorted !== newFieldsSorted) {
+      if (status) { status.innerText = "Invalid column list."; status.style.color = "red"; }
+      return;
+    }
+
+    // Create history backup before resorting
+    dataSet.history = dataSet.history || {};
+    dataSet.history[dataSet.revision] = {
+      fields: [...dataSet.fields],
+      records: JSON.parse(JSON.stringify(dataSet.records))
+    };
+
+    dataSet.fields = newFields;
+    dataSet.revision += 1;
+
+    await idbSet("DC_STORE", JSON.stringify(store));
+    renderDashboard();
+    refreshFormulas(true);
+    
+    if (status) {
+      status.innerText = `Columns resorted successfully. Current is Rev ${dataSet.revision}.`;
+      status.style.color = "green";
+    }
+  } catch (error) {
+    if (status) { status.innerText = "Error: " + error.message; status.style.color = "red"; }
+  }
+}
+
+export async function loadRecordForEdit(dataTableName: string) {
+  const status = document.getElementById("status-text");
+  try {
+    const storedData = await idbGet("DC_STORE");
+    if (!storedData) return;
+    let store = JSON.parse(storedData);
+    const dataSet = store[dataTableName];
+    if (!dataSet) return;
+
+    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
+    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
+
     let targetDataSet = dataSet;
-    if (selectedRev && selectedRev !== (dataSet.revision || 1) && dataSet.history && dataSet.history[selectedRev]) {
+    if (selectedRev !== (dataSet.revision || 1) && dataSet.history && dataSet.history[selectedRev]) {
         targetDataSet = dataSet.history[selectedRev];
     }
 
-    const idField = targetDataSet.fields[0];
-    const recordIndex = targetDataSet.records.findIndex((r: any) => String(r[idField]) === String(id));
+    const idField = dataSet.idField || targetDataSet.fields[0];
+    const allIds = targetDataSet.records.map((r: any) => String(r[idField]));
 
+    const id = await customPrompt("Edit Record", `Enter the Record ID to edit in '${dataTableName}':`, "", allIds);
+    if (!id || id.trim() === "") return;
+
+    const record = targetDataSet.records.find((r: any) => String(r[idField]) === String(id));
+
+    if (!record) {
+        if (status) { status.innerText = `Record '${id}' not found.`; status.style.color = "red"; }
+        return;
+    }
+
+    const formFields: FormField[] = targetDataSet.fields.map((field: string) => ({
+        id: field,
+        label: field,
+        type: 'text',
+        value: record[field] !== undefined ? String(record[field]) : "",
+        disabled: field === idField
+    }));
+
+    const editResult = await customFormPrompt(`Editing Record: ${id}`, "Update the values below:", formFields);
+    if (!editResult) return;
+
+    const recordIndex = targetDataSet.records.findIndex((r: any) => String(r[idField]) === String(id));
     if (recordIndex === -1) return;
 
-    fields.forEach(field => {
-        const input = document.getElementById(`edit-input-${dataTableName}-${field}`) as HTMLInputElement;
-        if (input && !input.disabled) {
-            targetDataSet.records[recordIndex][field] = input.value;
+    targetDataSet.fields.forEach((field: string) => {
+        if (field !== idField && editResult[field] !== undefined) {
+            targetDataSet.records[recordIndex][field] = editResult[field];
         }
     });
 
     await idbSet("DC_STORE", JSON.stringify(store));
-
-    const container = document.getElementById(`edit-form-container-${dataTableName}`);
-    if (container) container.style.display = "none";
 
     if (status) {
         status.innerText = `Record updated. Refreshing Excel...`;
@@ -1040,35 +1721,6 @@ export async function insertTable(dataTableName: string) {
     const status = document.getElementById("status-text");
     if (status) {
        status.innerText = "Error inserting table: " + error.message;
-       status.style.color = "red";
-    }
-  }
-}
-
-export async function insertFormulaFor(dataTableName: string) {
-  try {
-    const idInput = document.getElementById(`fb-id-${dataTableName}`) as HTMLInputElement;
-    const fieldSelect = document.getElementById(`fb-field-${dataTableName}`) as HTMLSelectElement;
-    const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
-    if (!idInput || !fieldSelect) return;
-
-    const id = idInput.value;
-    const field = fieldSelect.value;
-    if (!id) throw new Error("Please fill the ID to insert formula.");
-
-    const storedData = await idbGet("DC_STORE");
-    let store: any = {};
-    if (storedData) store = JSON.parse(storedData);
-    const dataSet = store[dataTableName] || {};
-    
-    const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
-    const isLatest = selectedRev === (dataSet.revision || 1);
-
-    await executeInsertFormula(id, field, dataTableName, selectedRev, isLatest);
-  } catch (error) {
-    const status = document.getElementById("status-text");
-    if (status) {
-       status.innerText = error.message;
        status.style.color = "red";
     }
   }

@@ -10,38 +10,28 @@
     <!-- Microsoft Office UI Fabric Core library -->
     <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css" />
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
-    <!-- Load Custom Functions in Shared Runtime -->
-    <script type="text/javascript">
-        document.write('<script src="functions.js"><\/script>');
-    </script>
 </head>
 <body class="ms-font-m ms-welcome">
     <header class="ms-welcome__header">
         <div class="header-left">
-            <button id="refresh-formulas-button" class="icon-btn" title="Refresh Dashboard & Formulas"><i class="ms-Icon ms-Icon--Refresh"></i></button>
             <button id="convert-values-button" class="icon-btn" title="Convert DC Formulas to Values"><i class="ms-Icon ms-Icon--NumberSymbol"></i></button>
         </div>
         <h1 class="title-text">Data Controller</h1>
         <div class="header-right">
-            <button class="icon-btn tab-link" data-tab="tab-settings" title="Settings"><i class="ms-Icon ms-Icon--Settings"></i></button>
+            <button id="settings-button" class="icon-btn" title="Settings"><i class="ms-Icon ms-Icon--Settings"></i></button>
         </div>
     </header>
     <main class="ms-welcome__main">
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-link active" data-tab="tab-dashboard"><i class="ms-Icon ms-Icon--ViewDashboard" style="margin-right: 6px;"></i>Dashboard</button>
-            <button class="tab-link" data-tab="tab-capture"><i class="ms-Icon ms-Icon--Add" style="margin-right: 6px;"></i>Capture</button>
-            <button class="tab-link" data-tab="tab-backup"><i class="ms-Icon ms-Icon--Save" style="margin-right: 6px;"></i>Backup</button>
-        </div>
 
         <!-- Global Status Area -->
         <div id="status-area" class="ms-font-s status-container">
-            <i class="ms-Icon ms-Icon--Info" style="margin-right: 8px; font-size: 16px; color: var(--primary-color);"></i>
+            <button id="refresh-formulas-button" class="icon-btn" title="Refresh Dashboard & Formulas" style="margin-right: 8px; color: var(--text-color); width: 24px; height: 24px;"><i class="ms-Icon ms-Icon--Refresh"></i></button>
             <span style="margin-right: 6px; color: #888; font-weight: normal;">Status:</span> <span id="status-text">Ready</span>
         </div>
 
-        <!-- Tab 1: Dashboard -->
-        <div id="tab-dashboard" class="tab-content active">
+        <!-- Main View (Dashboard + Capture) -->
+        <div id="main-view" class="view-container">
+            
             <div class="dashboard-controls">
                 <div class="ms-TextField flex-2">
                     <label class="ms-Label">Default Table (Formulas)</label>
@@ -52,49 +42,76 @@
                     <select id="default-revision-select" class="ms-Dropdown-title"></select>
                 </div>
             </div>
-            <ul id="data-table-list" class="data-table-list"></ul>
-        </div>
 
-        <!-- Tab 2: Capture -->
-        <div id="tab-capture" class="tab-content">
-            <p class="description-text">Select a range in Excel, provide a name, then load headers to select the ID column.</p>
-            <div class="ms-TextField">
-                <label class="ms-Label">Data Table Name</label>
-                <input id="data-name" class="ms-TextField-field" type="text" placeholder="e.g. Bill Of Qunatities">
-            </div>
-            <button id="capture-button" class="ms-Button ms-Button--primary w-100">
-                <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Table" style="margin-right: 8px;"></i>Load Selected Range</span>
+            <!-- Formula Builder Accordion -->
+            <button class="accordion" id="formula-builder-accordion" style="margin-top: 16px;">
+                <i class="ms-Icon ms-Icon--Calculator" style="margin-right: 8px;"></i> Visual Formula Builder
             </button>
-
-            <!-- Step 2: Select ID Column (Hidden initially) -->
-            <div id="capture-step-2" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <div class="accordion-content" id="formula-builder-content" style="margin-bottom: 0;">
+                <p class="description-text">Select a function and fill in the parameters. Cell references (e.g. A1) are supported.</p>
                 <div class="ms-TextField">
-                    <label class="ms-Label">Select ID Column</label>
-                    <select id="id-column-select" class="ms-Dropdown-title"></select>
+                    <label class="ms-Label">Select Function</label>
+                    <select id="formula-select" class="ms-Dropdown-title">
+                        <option value="GET" selected>DC.GET</option>
+                        <option value="SEARCH">DC.SEARCH</option>
+                        <option value="FILTER">DC.FILTER</option>
+                        <option value="SUM">DC.SUM</option>
+                        <option value="SUMIFS">DC.SUMIFS</option>
+                        <option value="JOIN">DC.JOIN</option>
+                    </select>
                 </div>
-                <button id="finish-capture-button" class="ms-Button ms-Button--primary w-100">
-                    <span class="ms-Button-label"><i class="ms-Icon ms-Icon--CheckMark" style="margin-right: 8px;"></i>Finish</span>
+                <div id="formula-inputs-container"></div>
+                <button id="insert-built-formula-button" class="ms-Button ms-Button--primary w-100" style="margin-top: 12px;">
+                    <span class="ms-Button-label"><i class="ms-Icon ms-Icon--CheckMark" style="margin-right: 8px;"></i>Insert Formula</span>
                 </button>
+            </div>
+
+            <ul id="data-table-list" class="data-table-list" style="margin-top: 16px;"></ul>
+
+            <!-- Capture Accordion -->
+            <button class="accordion" id="capture-accordion" style="margin-top: 16px;">
+                <i class="ms-Icon ms-Icon--Add" style="margin-right: 8px;"></i> Capture New Table
+            </button>
+            <div class="accordion-content" id="capture-content">
+                <p class="description-text">Select a range in Excel, provide a name, then load headers to select the ID column.</p>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Data Table Name</label>
+                    <input id="data-name" class="ms-TextField-field" type="text" placeholder="e.g. Bill Of Qunatities">
+                </div>
+                <button id="capture-button" class="ms-Button ms-Button--primary w-100">
+                    <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Table" style="margin-right: 8px;"></i>Load Selected Range</span>
+                </button>
+    
+                <!-- Step 2: Select ID Column (Hidden initially) -->
+                <div id="capture-step-2" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <div class="ms-TextField">
+                        <label class="ms-Label">Select ID Column</label>
+                        <select id="id-column-select" class="ms-Dropdown-title"></select>
+                    </div>
+                    <button id="finish-capture-button" class="ms-Button ms-Button--primary w-100">
+                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--CheckMark" style="margin-right: 8px;"></i>Finish</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Tab 3: Backup -->
-        <div id="tab-backup" class="tab-content">
-            <p class="description-text">Download a backup of your data or restore it from a file.</p>
-            <div class="button-group flex-col">
-                <button id="backup-button" class="ms-Button ms-Button--default w-100">
-                    <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Download" style="margin-right: 8px;"></i>Backup</span>
-                </button>
-                <button id="restore-button" class="ms-Button ms-Button--default w-100">
-                    <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Upload" style="margin-right: 8px;"></i>Restore</span>
-                </button>
+        <!-- Settings View (Hidden by default) -->
+        <div id="settings-view" class="view-container" style="display: none;">
+            <div class="settings-group" style="margin-bottom: 20px;">
+                <label class="ms-Label">Data Backup & Restore</label>
+                <p class="description-text" style="font-size: 12px; margin-bottom: 10px;">Download a backup of your data or restore it from a file.</p>
+                <div class="button-group flex-col">
+                    <button id="backup-button" class="ms-Button ms-Button--default w-100">
+                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Download" style="margin-right: 8px;"></i>Backup Data</span>
+                    </button>
+                    <button id="restore-button" class="ms-Button ms-Button--default w-100">
+                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Upload" style="margin-right: 8px;"></i>Restore Data</span>
+                    </button>
+                </div>
+                <input type="file" id="restore-file-input" accept=".json" style="display: none;" />
             </div>
-            <input type="file" id="restore-file-input" accept=".json" style="display: none;" />
-        </div>
 
-        <!-- Tab 4: Settings -->
-        <div id="tab-settings" class="tab-content">
-            <div class="settings-group">
+            <div class="settings-group" style="border-top: 1px solid var(--border-color); padding-top: 16px;">
                 <label class="ms-Label">Theme Appearance</label>
                 <label class="theme-switch">
                     <input type="checkbox" id="theme-toggle">
@@ -108,5 +125,56 @@
             </div>
         </div>
     </main>
+
+    <!-- Custom Modal for Prompts -->
+    <div id="custom-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title" style="margin-top: 0; color: var(--primary-color);"></h3>
+            <p id="modal-message" class="description-text" style="font-size: 13px;"></p>
+            <input type="text" id="modal-input" class="ms-TextField-field" style="margin-bottom: 16px;" />
+            <div class="button-group flex-col">
+                <button id="modal-ok" class="ms-Button ms-Button--primary w-100">OK</button>
+                <button id="modal-cancel" class="ms-Button ms-Button--default w-100">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Sorting (Drag and Drop) -->
+    <div id="custom-sort-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="sort-modal-title" style="margin-top: 0; color: var(--primary-color);"></h3>
+            <p id="sort-modal-message" class="description-text" style="font-size: 13px;"></p>
+            <ul id="sort-modal-list" class="sortable-list"></ul>
+            <div class="button-group flex-col" style="margin-top: 16px;">
+                <button id="sort-modal-ok" class="ms-Button ms-Button--primary w-100">Save Order</button>
+                <button id="sort-modal-cancel" class="ms-Button ms-Button--default w-100">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Form Modal -->
+    <div id="custom-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="form-modal-title" style="margin-top: 0; color: var(--primary-color);"></h3>
+            <p id="form-modal-message" class="description-text" style="font-size: 13px;"></p>
+            <div id="form-modal-inputs" style="max-height: 50vh; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;"></div>
+            <div class="button-group flex-col">
+                <button id="form-modal-ok" class="ms-Button ms-Button--primary w-100">Save</button>
+                <button id="form-modal-cancel" class="ms-Button ms-Button--default w-100">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="custom-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="confirm-modal-title" style="margin-top: 0; color: #d13438;"></h3>
+            <p id="confirm-modal-message" class="description-text" style="font-size: 13px;"></p>
+            <div class="button-group flex-col" style="margin-top: 16px;">
+                <button id="confirm-modal-yes" class="ms-Button ms-Button--danger w-100">Yes, Delete</button>
+                <button id="confirm-modal-no" class="ms-Button ms-Button--default w-100">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
