@@ -199,6 +199,39 @@
             "result": {
                 "dimensionality": "matrix"
             }
+        },
+        {
+            "description": "Returns all records sorted by a specific column.",
+            "id": "SORT",
+            "name": "SORT",
+            "parameters": [
+                {
+                    "description": "The column name to sort by.",
+                    "name": "sortField",
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. Sort ascending (TRUE) or descending (FALSE). Default is TRUE.",
+                    "name": "ascending",
+                    "optional": true,
+                    "type": "boolean"
+                },
+                {
+                    "description": "Optional. The name of the data table. Uses default if empty.",
+                    "name": "dataTableName",
+                    "optional": true,
+                    "type": "string"
+                },
+                {
+                    "description": "Optional. The revision number. Uses the latest by default.",
+                    "name": "rev",
+                    "optional": true,
+                    "type": "number"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
         }
     ]
 }
