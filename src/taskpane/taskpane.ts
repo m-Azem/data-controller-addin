@@ -7,10 +7,48 @@ import { executeInsertTable, executeInsertDropdown, executeConvertToValues, exec
 
 const APP_VERSION = "1.0.1"; // Update this number whenever you release a new version
 
+const IDB_KEYS = {
+    STORE: "DC_STORE",
+    THEME: "DC_THEME",
+    DEFAULT_TABLE: "DC_DEFAULT_DATA_TABLE",
+    DEFAULT_REVISION: "DC_DEFAULT_REVISION"
+};
+
+interface DCRecord {
+  __DC_ID__: string;
+  [key: string]: any;
+}
+
+interface DataSetVersion {
+  idField: string;
+  fields: string[];
+  records: DCRecord[];
+}
+
+interface DataSet extends DataSetVersion {
+  dataTableName: string;
+  revision: number;
+  history: { [rev: number]: DataSetVersion };
+}
+
+interface Store {
+  [dataTableName: string]: DataSet;
+}
+
+let activeFormulaInput: HTMLInputElement | null = null;
+
+export function showStatus(message: string, type: "success" | "error" | "info" = "info") {
+    const status = document.getElementById("status-text");
+    if (!status) return;
+    status.innerText = message;
+    if (type === "success") status.style.color = "green";
+    else if (type === "error") status.style.color = "red";
+    else status.style.color = "blue";
+}
+
 Office.onReady(async (info) => {
   if (info.host === Office.HostType.Excel) {
     document.getElementById("capture-button").onclick = loadRangeForCapture;
-    document.getElementById("finish-capture-button").onclick = finishCapture;
     document.getElementById("backup-button").onclick = backupData;
     document.getElementById("restore-button").onclick = triggerRestore;
     document.getElementById("restore-file-input").addEventListener("change", restoreData);
@@ -35,11 +73,22 @@ Office.onReady(async (info) => {
       formulaAccordion.addEventListener("click", () => {
         formulaAccordion.classList.toggle("active");
         formulaContent.classList.toggle("show");
+        if (!formulaContent.classList.contains("show")) {
+            activeFormulaInput = null;
+        }
       });
     }
 
     document.getElementById("formula-select")?.addEventListener("change", renderFormulaBuilder);
+    document.getElementById("formula-select")?.addEventListener("focus", () => { activeFormulaInput = null; });
+    document.getElementById("formula-select")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
     document.getElementById("insert-built-formula-button").onclick = insertBuiltFormula;
+    document.getElementById("insert-built-formula-button")?.addEventListener("focus", () => { activeFormulaInput = null; });
+    document.getElementById("insert-built-formula-button")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
+
+    document.getElementById("clear-formula-button")?.addEventListener("click", clearFormulaForm);
+    document.getElementById("clear-formula-button")?.addEventListener("focus", () => { activeFormulaInput = null; });
+    document.getElementById("clear-formula-button")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
 
     // Setup Theme Toggle
     const themeToggle = document.getElementById("theme-toggle");
@@ -48,6 +97,27 @@ Office.onReady(async (info) => {
     // Display App Version
     const versionDisplay = document.getElementById("app-version-display");
     if (versionDisplay) versionDisplay.innerText = APP_VERSION;
+
+    // Handle automatic cell reference insertion for Formula Builder
+    Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, async () => {
+        const formulaContent = document.getElementById("formula-builder-content");
+        const isVisible = formulaContent && formulaContent.classList.contains("show");
+        if (isVisible && activeFormulaInput && document.body.contains(activeFormulaInput)) {
+            try {
+                await Excel.run(async (context) => {
+                    const range = context.workbook.getSelectedRange();
+                    range.load("address");
+                    await context.sync();
+                    let address = range.address;
+                    if (address.includes("!")) address = address.split("!")[1];
+                    if (address.includes(":")) address = address.split(":")[0];
+                    activeFormulaInput.value = address.replace(/\$/g, "");
+                });
+            } catch (e) {
+                // Silently ignore errors, e.g., when selection is not a range.
+            }
+        }
+    });
 
     await migrateFromLocalStorage(); // Migrate old data if present
     loadSettings();
@@ -137,16 +207,18 @@ export function customConfirm(title: string, message: string, confirmText: strin
   });
 }
 
-export function customSortPrompt(title: string, message: string, items: string[]): Promise<string[] | null> {
+export function customManageColumnsPrompt(title: string, message: string, items: string[], idField: string): Promise<{changes: {oldName: string, newName: string}[], saveAsNewRevision: boolean} | null> {
   return new Promise((resolve) => {
       const modal = document.getElementById("custom-sort-modal");
       const titleEl = document.getElementById("sort-modal-title");
       const messageEl = document.getElementById("sort-modal-message");
       const listEl = document.getElementById("sort-modal-list");
-      const btnOk = document.getElementById("sort-modal-ok");
+      const btnDeleteSelected = document.getElementById("sort-modal-delete-selected");
+      const btnSaveCurrent = document.getElementById("sort-modal-save-current");
+      const btnSaveNew = document.getElementById("sort-modal-save-new");
       const btnCancel = document.getElementById("sort-modal-cancel");
 
-      if (!modal || !titleEl || !messageEl || !listEl || !btnOk || !btnCancel) {
+      if (!modal || !titleEl || !messageEl || !listEl || !btnDeleteSelected || !btnSaveCurrent || !btnSaveNew || !btnCancel) {
           resolve(null);
           return;
       }
@@ -159,8 +231,24 @@ export function customSortPrompt(title: string, message: string, items: string[]
           const li = document.createElement("li");
           li.className = "sortable-item";
           li.draggable = true;
-          li.innerHTML = `<i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888;"></i><span>${item}</span>`;
-          li.dataset.value = item;
+          li.dataset.original = item;
+          
+          const isId = item === idField;
+          
+          li.innerHTML = `
+              <div style="display:flex; align-items:center; width:100%;">
+                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
+                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" ${isId ? 'disabled title="Cannot delete ID column"' : ''} />
+                <input type="text" class="ms-TextField-field" value="${item}" style="flex: 1; padding: 2px 8px;" />
+                ${isId ? '<span style="font-size:10px; color:#0078d4; margin-left:8px; font-weight:bold;" title="Primary ID Column">(ID)</span>' : ''}
+              </div>
+          `;
+          
+          // Prevent drag when selecting text inside the input
+          const inputEl = li.querySelector("input");
+          if (inputEl) {
+              inputEl.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+          }
           
           li.addEventListener("dragstart", () => li.classList.add("dragging"));
           li.addEventListener("dragend", () => li.classList.remove("dragging"));
@@ -192,16 +280,221 @@ export function customSortPrompt(title: string, message: string, items: string[]
 
       const cleanup = () => {
           modal.style.display = "none";
-          btnOk.onclick = null;
+          btnDeleteSelected.onclick = null;
+          btnSaveCurrent.onclick = null;
+          btnSaveNew.onclick = null;
           btnCancel.onclick = null;
           listEl.removeEventListener("dragover", handleDragOver);
       };
 
-      btnOk.onclick = () => {
-          const newOrder = Array.from(listEl.children).map((li) => (li as HTMLElement).dataset.value as string);
-          cleanup();
-          resolve(newOrder);
+      const getChanges = () => {
+          return Array.from(listEl.children).map((li) => {
+              const original = (li as HTMLElement).dataset.original as string;
+              const newName = ((li as HTMLElement).querySelector("input") as HTMLInputElement).value.trim();
+              return { oldName: original, newName: newName || original };
+          });
       };
+
+      btnDeleteSelected.onclick = () => {
+          const checkboxes = listEl.querySelectorAll('.col-delete-checkbox:checked');
+          checkboxes.forEach(cb => {
+              const li = cb.closest('.sortable-item');
+              if (li) li.remove();
+          });
+      };
+
+      btnSaveCurrent.onclick = () => {
+          cleanup();
+          resolve({ changes: getChanges(), saveAsNewRevision: false });
+      };
+      btnSaveNew.onclick = () => {
+          cleanup();
+          resolve({ changes: getChanges(), saveAsNewRevision: true });
+      };
+      btnCancel.onclick = () => { cleanup(); resolve(null); };
+  });
+}
+
+export function customDataSummaryPrompt(
+  title: string,
+  message: string,
+  headers: string[],
+  dataRows: (string | number | boolean)[][],
+  defaultIdField: string = ""
+): Promise<{ idField: string, fields: string[], records: any[] } | null> {
+  return new Promise((resolve) => {
+      const modal = document.getElementById("custom-summary-modal");
+      const titleEl = document.getElementById("summary-modal-title");
+      const messageEl = document.getElementById("summary-modal-message");
+      const idSelect = document.getElementById("summary-modal-id-select") as HTMLSelectElement;
+      const errorEl = document.getElementById("summary-modal-error");
+      const listEl = document.getElementById("summary-modal-list");
+      const btnDeleteSelected = document.getElementById("summary-modal-delete-selected");
+      const btnOk = document.getElementById("summary-modal-ok");
+      const btnCancel = document.getElementById("summary-modal-cancel");
+      const btnNext = document.getElementById("summary-modal-next") as HTMLButtonElement;
+      const btnBack = document.getElementById("summary-modal-back") as HTMLButtonElement;
+      const step1Div = document.getElementById("summary-step-1");
+      const step2Div = document.getElementById("summary-step-2");
+      const recordsCountEl = document.getElementById("summary-records-count");
+      const idColumnEl = document.getElementById("summary-id-column");
+      const finalColumnsEl = document.getElementById("summary-final-columns");
+
+
+      if (!modal || !titleEl || !messageEl || !idSelect || !errorEl || !listEl || !btnDeleteSelected || !btnOk || !btnCancel || !btnNext || !btnBack || !step1Div || !step2Div || !recordsCountEl || !idColumnEl || !finalColumnsEl) {
+          resolve(null); return;
+      }
+
+      titleEl.innerText = title;
+      messageEl.innerText = message;
+      errorEl.style.display = "none";
+      
+      idSelect.innerHTML = "";
+      headers.forEach((h, i) => {
+          const opt = document.createElement("option");
+          opt.value = h;
+          opt.text = h || `Column ${i + 1}`;
+          idSelect.appendChild(opt);
+      });
+      if (defaultIdField && headers.includes(defaultIdField)) idSelect.value = defaultIdField;
+
+      const renderBadges = () => {
+          const idName = idSelect.value;
+          Array.from(listEl.children).forEach(li => {
+              const orig = (li as HTMLElement).dataset.original;
+              let badge = li.querySelector('.id-badge');
+              if (orig === idName) {
+                  if (!badge) {
+                      badge = document.createElement("span");
+                      badge.className = "id-badge";
+                      badge.style.cssText = "font-size:10px; color:#0078d4; margin-left:8px; font-weight:bold;";
+                      badge.innerText = "(ID)";
+                      li.querySelector('div')?.appendChild(badge);
+                  }
+              } else {
+                  if (badge) badge.remove();
+              }
+          });
+      };
+      idSelect.onchange = renderBadges;
+
+      listEl.innerHTML = "";
+      headers.forEach((item) => {
+          const li = document.createElement("li");
+          li.className = "sortable-item";
+          li.draggable = true;
+          li.dataset.original = item;
+          li.innerHTML = `
+              <div style="display:flex; align-items:center; width:100%;">
+                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
+                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" />
+                <input type="text" class="ms-TextField-field" value="${item}" style="flex: 1; padding: 2px 8px;" />
+              </div>
+          `;
+          const inputEl = li.querySelector("input[type='text']");
+          if (inputEl) inputEl.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+          li.addEventListener("dragstart", () => li.classList.add("dragging"));
+          li.addEventListener("dragend", () => li.classList.remove("dragging"));
+          listEl.appendChild(li);
+      });
+      renderBadges();
+      
+      const handleDragOver = (e: DragEvent) => {
+          e.preventDefault();
+          const dragging = listEl.querySelector('.dragging') as HTMLElement;
+          if (!dragging) return;
+          const siblings = [...listEl.querySelectorAll('.sortable-item:not(.dragging)')] as HTMLElement[];
+          const nextSibling = siblings.find(sibling => {
+              const box = sibling.getBoundingClientRect();
+              return (e.clientY - box.top - box.height / 2) < 0;
+          });
+          if (nextSibling) listEl.insertBefore(dragging, nextSibling);
+          else listEl.appendChild(dragging);
+      };
+      listEl.addEventListener("dragover", handleDragOver);
+      modal.style.display = "flex";
+
+      let validationData: { idField: string, fields: string[], records: any[] } | null = null;
+
+      const cleanup = () => {
+          modal.style.display = "none";
+          btnDeleteSelected.onclick = null;
+          btnNext.onclick = null;
+          btnBack.onclick = null;
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+          idSelect.onchange = null;
+          listEl.removeEventListener("dragover", handleDragOver);
+      };
+
+      btnDeleteSelected.onclick = () => {
+          const checkboxes = listEl.querySelectorAll('.col-delete-checkbox:checked');
+          checkboxes.forEach(cb => {
+              const li = cb.closest('.sortable-item');
+              if (li && (li as HTMLElement).dataset.original !== idSelect.value) li.remove();
+              else if (li) { errorEl.innerText = `Cannot delete the Primary ID column ('${idSelect.value}').`; errorEl.style.display = "block"; }
+          });
+      };
+
+      btnNext.onclick = () => {
+          errorEl.style.display = "none";
+          const selectedIdOrigName = idSelect.value;
+          const idLi = Array.from(listEl.children).find(li => (li as HTMLElement).dataset.original === selectedIdOrigName);
+          if (!idLi) { errorEl.innerText = "The Primary ID column must be present in the table."; errorEl.style.display = "block"; return; }
+
+          const idIndexOrig = headers.indexOf(selectedIdOrigName);
+          const idSet = new Set();
+          for (let i = 0; i < dataRows.length; i++) {
+              const val = String(dataRows[i][idIndexOrig]);
+              if (!val || val.trim() === "") { errorEl.innerText = `Row ${i + 1} has an empty ID. IDs must be non-empty.`; errorEl.style.display = "block"; return; }
+              if (idSet.has(val)) { errorEl.innerText = `Duplicate ID found: '${val}'. All IDs must be unique.`; errorEl.style.display = "block"; return; }
+              idSet.add(val);
+          }
+          
+          const newFieldsList = Array.from(listEl.children).map(li => ((li as HTMLElement).querySelector("input[type='text']") as HTMLInputElement).value.trim());
+          const uniqueFields = new Set(newFieldsList);
+          if (uniqueFields.size !== newFieldsList.length) { errorEl.innerText = "All column names must be unique."; errorEl.style.display = "block"; return; }
+          
+          const columnsInfo = Array.from(listEl.children).map(li => ({
+              oIdx: headers.indexOf((li as HTMLElement).dataset.original as string),
+              newName: ((li as HTMLElement).querySelector("input[type='text']") as HTMLInputElement).value.trim()
+          }));
+
+          const finalRecords = dataRows.map(row => {
+              const rec: any = {};
+              columnsInfo.forEach(col => { rec[col.newName] = row[col.oIdx]; });
+              rec.__DC_ID__ = String(row[idIndexOrig]);
+              return rec;
+          });
+
+          validationData = {
+              idField: ((idLi as HTMLElement).querySelector("input[type='text']") as HTMLInputElement).value.trim(),
+              fields: newFieldsList,
+              records: finalRecords
+          };
+
+          step1Div.style.display = "none";
+          step2Div.style.display = "block";
+          btnDeleteSelected.style.display = "none";
+          btnNext.style.display = "none";
+          btnBack.style.display = "block";
+          btnOk.style.display = "block";
+          
+          if (recordsCountEl) recordsCountEl.innerText = String(finalRecords.length); 
+          if (idColumnEl) idColumnEl.innerText = validationData.idField;
+          if (finalColumnsEl) finalColumnsEl.innerText = newFieldsList.join(", ");
+      };
+
+      btnBack.onclick = () => {
+          step1Div.style.display = "block";
+          step2Div.style.display = "none";
+          btnDeleteSelected.style.display = "block";
+          btnNext.style.display = "block";
+          btnBack.style.display = "none";
+          btnOk.style.display = "none";
+          validationData = null;
+      };
+      btnOk.onclick = () => { cleanup(); resolve(validationData); };
       btnCancel.onclick = () => { cleanup(); resolve(null); };
   });
 }
@@ -350,6 +643,12 @@ const formulaDefinitions: Record<string, { id: string, label: string, required: 
         { id: "param-foreignKeyField", label: "Foreign Key Field", required: true },
         { id: "param-foreignTableName", label: "Foreign Table Name", required: true },
         { id: "param-foreignReturnField", label: "Foreign Return Field", required: true }
+    ],
+    "SORT": [
+        { id: "param-sortField", label: "Sort Field", required: true },
+        { id: "param-ascending", label: "Ascending (TRUE/FALSE)", required: false },
+        { id: "param-dataTableName", label: "Data Table Name", required: false },
+        { id: "param-rev", label: "Revision", required: false }
     ]
 };
 
@@ -363,14 +662,14 @@ export async function renderFormulaBuilder() {
 
     container.innerHTML = "";
 
-    const storedData = await idbGet("DC_STORE");
-    let store: any = {};
+    const storedData = await idbGet(IDB_KEYS.STORE);
+    let store: Store = {};
     let tables: string[] = [];
     if (storedData) {
         store = JSON.parse(storedData);
         tables = Object.keys(store);
     }
-    let defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    let defaultTable = await idbGet(IDB_KEYS.DEFAULT_TABLE);
     if (!defaultTable && tables.length > 0) defaultTable = tables[0];
 
     const inputRefs: { id: string, el: HTMLInputElement | HTMLSelectElement, datalist?: HTMLDataListElement }[] = [];
@@ -412,7 +711,7 @@ export async function renderFormulaBuilder() {
                 return;
             }
 
-            if (ref.id === "param-exactMatch") {
+            if (ref.id === "param-exactMatch" || ref.id === "param-ascending") {
                 ["TRUE", "FALSE"].forEach(t => {
                     const opt = document.createElement("option");
                     opt.value = t;
@@ -431,8 +730,7 @@ export async function renderFormulaBuilder() {
             if (ref.id.toLowerCase().includes("field")) {
                 options = dataSet.fields || [];
             } else if (ref.id === "param-id") {
-                const idField = dataSet.idField || dataSet.fields[0];
-                options = (dataSet.records || []).map((r: any) => String(r[idField]));
+                options = (dataSet.records || []).map((r: any) => String(r.__DC_ID__));
             }
 
             // Remove duplicates and empty strings
@@ -460,7 +758,7 @@ export async function renderFormulaBuilder() {
         label.className = "ms-Label";
         label.innerHTML = `${f.label} ${f.required ? '<span style="color:#d13438;">*</span>' : '<span style="color:#888;font-weight:normal;">(Optional)</span>'}`;
 
-        const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch";
+        const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch" || f.id === "param-ascending";
         let inputEl: HTMLInputElement | HTMLSelectElement;
         let dataList: HTMLDataListElement | undefined;
 
@@ -469,6 +767,8 @@ export async function renderFormulaBuilder() {
             inputEl.id = f.id;
             inputEl.className = "ms-Dropdown-title";
             inputRefs.push({ id: f.id, el: inputEl });
+            inputEl.addEventListener("focus", () => { activeFormulaInput = null; });
+            inputEl.addEventListener("mousedown", () => { activeFormulaInput = null; });
         } else {
             inputEl = document.createElement("input");
             inputEl.type = "text";
@@ -483,6 +783,9 @@ export async function renderFormulaBuilder() {
             dataList.id = listId;
 
             inputRefs.push({ id: f.id, el: inputEl, datalist: dataList });
+
+            inputEl.addEventListener("focus", () => { activeFormulaInput = inputEl as HTMLInputElement; });
+            inputEl.addEventListener("mousedown", () => { activeFormulaInput = inputEl as HTMLInputElement; });
 
             if (f.id.toLowerCase().includes("tablename")) {
                 inputEl.addEventListener("input", updateDataLists);
@@ -553,11 +856,19 @@ export async function insertBuiltFormula() {
         }
 
     } catch (error) {
-        if (status) {
-            status.innerText = error.message;
-            status.style.color = "red";
-        }
+        showStatus(error instanceof Error ? error.message : String(error), "error");
     }
+}
+
+export function clearFormulaForm() {
+    const container = document.getElementById("formula-inputs-container");
+    if (!container) return;
+    
+    const inputs = container.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select");
+    inputs.forEach((el) => {
+        el.value = "";
+    });
+    activeFormulaInput = null;
 }
 
 export function toggleSettings() {
@@ -578,24 +889,22 @@ export function toggleSettings() {
   }
 }
 
-export async function toggleTheme(event: any) {
-  const isDark = event.target.checked;
+export async function toggleTheme(event: Event) {
+  const isDark = (event.target as HTMLInputElement).checked;
   if (isDark) document.body.classList.add('theme-dark');
   else document.body.classList.remove('theme-dark');
-  await idbSet("DC_THEME", isDark ? "dark" : "light");
+  await idbSet(IDB_KEYS.THEME, isDark ? "dark" : "light");
 }
 
 export async function loadSettings() {
-  const theme = await idbGet("DC_THEME");
+  const theme = await idbGet(IDB_KEYS.THEME);
   const toggle = document.getElementById("theme-toggle") as HTMLInputElement;
   if (theme === "dark") {
     document.body.classList.add("theme-dark");
     if (toggle) toggle.checked = true;
   }
 }
-
-let pendingCaptureData: { name: string, headers: string[], dataRows: any[][] } | null = null;
-
+ 
 export async function loadRangeForCapture() {
   const status = document.getElementById("status-text");
   try {
@@ -615,122 +924,52 @@ export async function loadRangeForCapture() {
         throw new Error("Select a range with headers and data.");
       }
 
-      pendingCaptureData = {
-        name: dataName,
-        headers: values[0],
-        dataRows: values.slice(1)
-      };
+          const summary = await customDataSummaryPrompt(
+              "Capture New Table",
+              `Review and map columns for '${dataName}' (${values.length - 1} rows detected).`,
+              values[0],
+              values.slice(1)
+          );
+          if (!summary) return;
 
-      const idSelect = document.getElementById("id-column-select") as HTMLSelectElement;
-      idSelect.innerHTML = "";
-      pendingCaptureData.headers.forEach((header, index) => {
-         const opt = document.createElement("option");
-         opt.value = String(index);
-         opt.text = header || `Column ${index + 1}`;
-         idSelect.appendChild(opt);
-      });
+          let store: Store = {};
+          const existingStore = await idbGet(IDB_KEYS.STORE);
+          if (existingStore) store = JSON.parse(existingStore);
+          
+          let rev = 1;
+          let history = {};
+          if (store[dataName]) {
+              rev = store[dataName].revision || 1;
+              history = store[dataName].history || {};
+          }
 
-      const step2Div = document.getElementById("capture-step-2");
-      if (step2Div) step2Div.style.display = "block";
-      
-      if (status) {
-        status.innerText = "Range loaded. Please select the ID column and click Finish.";
-        status.style.color = "blue";
-      }
-    });
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error: " + error.message;
-      status.style.color = "red";
-    }
-    const step2Div = document.getElementById("capture-step-2");
-    if (step2Div) step2Div.style.display = "none";
-    pendingCaptureData = null;
-  }
-}
+          store[dataName] = {
+              dataTableName: dataName,
+              idField: summary.idField,
+              revision: rev,
+              history: history,
+              fields: summary.fields,
+              records: summary.records
+          };
 
-export async function finishCapture() {
-  const status = document.getElementById("status-text");
-  try {
-    if (!pendingCaptureData) {
-      throw new Error("No pending data to capture. Please load the range again.");
-    }
+          await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
+          if (status) { status.innerText = `Saved ${summary.records.length} records in ${dataName}.`; status.style.color = "green"; }
 
-    const idSelect = document.getElementById("id-column-select") as HTMLSelectElement;
-    const idIndex = parseInt(idSelect.value, 10);
-    
-    const originalHeaders = pendingCaptureData.headers;
-    const dataRows = pendingCaptureData.dataRows;
-    const dataName = pendingCaptureData.name;
-
-    if (isNaN(idIndex) || idIndex < 0 || idIndex >= originalHeaders.length) {
-      throw new Error("Invalid ID Column selected.");
-    }
-
-    const idColumn = originalHeaders[idIndex];
-    if (!idColumn || String(idColumn).trim() === "") {
-      throw new Error("The selected ID column must have a valid header.");
-    }
-
-    const fields = [...originalHeaders];
-
-    let store: any = {};
-    const existingStore = await idbGet("DC_STORE");
-    if (existingStore) {
-      store = JSON.parse(existingStore);
-    }
-
-    let rev = 1;
-    let history = {};
-    if (store[dataName]) {
-      rev = store[dataName].revision || 1;
-      history = store[dataName].history || {};
-    }
-
-    const dataSet = {
-      dataTableName: dataName,
-      idField: idColumn,
-      revision: rev,
-      history: history,
-      fields: fields,
-      records: dataRows.map((row: any[]) => {
-        let record: any = {};
-        originalHeaders.forEach((header, index) => {
-          record[header] = row[index];
-        });
-        return record;
-      })
-    };
-
-    store[dataName] = dataSet;
-    await idbSet("DC_STORE", JSON.stringify(store));
-    
-    if (status) {
-      status.innerText = `Saved ${dataRows.length} records in ${dataName}. (ID: "${idColumn}")`;
-      status.style.color = "green";
-    }
-
-    // Reset UI
-    const step2Div = document.getElementById("capture-step-2");
-    if (step2Div) step2Div.style.display = "none";
-    (document.getElementById("data-name") as HTMLInputElement).value = "";
-    pendingCaptureData = null;
+          (document.getElementById("data-name") as HTMLInputElement).value = "";
 
     const captureAccordion = document.getElementById("capture-accordion");
     const captureContent = document.getElementById("capture-content");
     if (captureAccordion) captureAccordion.classList.remove("active");
     if (captureContent) captureContent.classList.remove("show");
 
-    await idbSet("DC_DEFAULT_DATA_TABLE", dataName);
-    await idbSet("DC_DEFAULT_REVISION", String(rev));
+    await idbSet(IDB_KEYS.DEFAULT_TABLE, dataName);
+    await idbSet(IDB_KEYS.DEFAULT_REVISION, String(rev));
 
-    renderDashboard();
-    refreshFormulas(true);
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error: " + error.message;
-      status.style.color = "red";
-    }
+    await renderDashboard();
+    await refreshFormulas(true);
+    });
+  } catch (error: any) {
+    showStatus(error.message, "error");
   }
 }
 
@@ -750,8 +989,8 @@ export async function replaceTableData(dataTableName: string) {
       const headers = values[0];
       const dataRows = values.slice(1);
 
-      let store: any = {};
-      const existingStore = await idbGet("DC_STORE");
+      let store: Store = {};
+      const existingStore = await idbGet(IDB_KEYS.STORE);
       if (existingStore) {
         store = JSON.parse(existingStore);
       }
@@ -761,11 +1000,6 @@ export async function replaceTableData(dataTableName: string) {
       }
 
       const dataSet = store[dataTableName];
-      const existingIdField = dataSet.idField || dataSet.fields[0];
-
-      if (!headers.includes(existingIdField)) {
-        throw new Error(`The selected range must include the original ID column: '${existingIdField}'.`);
-      }
 
       const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
       const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
@@ -778,29 +1012,32 @@ export async function replaceTableData(dataTableName: string) {
         targetDataSet = dataSet.history[selectedRev];
       }
 
-      targetDataSet.fields = headers;
-      targetDataSet.records = dataRows.map((row: any[]) => {
-        let record: any = {};
-        headers.forEach((header, index) => {
-          record[header] = row[index];
-        });
-        return record;
-      });
+      const existingIdField = targetDataSet.idField || dataSet.idField || dataSet.fields[0];
 
-      await idbSet("DC_STORE", JSON.stringify(store));
+      const summary = await customDataSummaryPrompt(
+          "Replace Version",
+          `Review replacing data for '${dataTableName}' (${values.length - 1} rows detected).`,
+          values[0],
+          values.slice(1),
+          existingIdField
+      );
+      if (!summary) return;
+
+      targetDataSet.fields = summary.fields;
+      targetDataSet.records = summary.records;
+      targetDataSet.idField = summary.idField;
+
+      await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
       
       if (status) {
-        status.innerText = isLatest ? `Replaced '${dataTableName}' with ${dataRows.length} new records. (ID: "${existingIdField}")` : `Replaced Rev ${selectedRev} of '${dataTableName}' with ${dataRows.length} records.`;
+        status.innerText = isLatest ? `Replaced '${dataTableName}' with ${summary.records.length} new records. (ID: "${summary.idField}")` : `Replaced Rev ${selectedRev} of '${dataTableName}' with ${summary.records.length} records.`;
         status.style.color = "green";
       }
-      renderDashboard();
-      refreshFormulas(true);
+      await renderDashboard();
+      await refreshFormulas(true);
     });
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error replacing data: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Error replacing data: " + error.message, "error");
   }
 }
 
@@ -820,8 +1057,8 @@ export async function captureNewRevision(dataTableName: string) {
       const headers = values[0];
       const dataRows = values.slice(1);
 
-      let store: any = {};
-      const existingStore = await idbGet("DC_STORE");
+      let store: Store = {};
+      const existingStore = await idbGet(IDB_KEYS.STORE);
       if (existingStore) {
         store = JSON.parse(existingStore);
       }
@@ -833,34 +1070,40 @@ export async function captureNewRevision(dataTableName: string) {
       const dataSet = store[dataTableName];
       const existingIdField = dataSet.idField || dataSet.fields[0];
 
-      if (!headers.includes(existingIdField)) {
-        throw new Error(`The selected range must include the original ID column: '${existingIdField}'.`);
-      }
+      const summary = await customDataSummaryPrompt(
+          "Capture New Revision",
+          `Review data for new revision of '${dataTableName}' (${values.length - 1} rows detected).`,
+          values[0],
+          values.slice(1),
+          existingIdField
+      );
+      if (!summary) return;
 
       const currentRev = dataSet.revision || 1;
       dataSet.history = dataSet.history || {};
       dataSet.history[currentRev] = {
+        idField: dataSet.idField,
         fields: [...dataSet.fields],
         records: JSON.parse(JSON.stringify(dataSet.records))
       };
       
       dataSet.revision = currentRev + 1;
-      dataSet.fields = headers;
-      dataSet.records = dataRows.map((row: any[]) => {
-        let record: any = {};
-        headers.forEach((header, index) => { record[header] = row[index]; });
-        return record;
-      });
+      dataSet.idField = summary.idField;
+      dataSet.fields = summary.fields;
+      dataSet.records = summary.records;
 
-      await idbSet("DC_STORE", JSON.stringify(store));
-      await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+      await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
+      const currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
+      if (currentDefault === dataTableName) {
+          await idbSet(IDB_KEYS.DEFAULT_REVISION, String(dataSet.revision));
+      }
       
       if (status) { status.innerText = `Captured Rev ${dataSet.revision} for '${dataTableName}' with ${dataRows.length} records.`; status.style.color = "green"; }
-      renderDashboard();
-      refreshFormulas(true);
+      await renderDashboard();
+      await refreshFormulas(true);
     });
-  } catch (error) {
-    if (status) { status.innerText = "Error capturing new revision: " + error.message; status.style.color = "red"; }
+  } catch (error: any) {
+    showStatus("Error capturing new revision: " + error.message, "error");
   }
 }
 
@@ -869,7 +1112,7 @@ export async function renderDashboard() {
   if (!list) return;
   
   list.innerHTML = "";
-  const storedData = await idbGet("DC_STORE");
+  const storedData = await idbGet(IDB_KEYS.STORE);
   const defaultSelect = document.getElementById("default-data-table-select") as HTMLSelectElement;
   const defaultRevSelect = document.getElementById("default-revision-select") as HTMLSelectElement;
 
@@ -880,7 +1123,7 @@ export async function renderDashboard() {
     return;
   }
 
-  let store = JSON.parse(storedData);
+  let store: Store = JSON.parse(storedData);
   let needsSave = false;
 
   // Cleanup: migrate old single-data-table format if present
@@ -912,11 +1155,30 @@ export async function renderDashboard() {
     }
   }
 
+  // NEW: Ensure __DC_ID__ exists on all records for the internal mark
+  const keys = Object.keys(store);
+  keys.forEach(key => {
+      const dataTable = store[key];
+      if (dataTable.records && dataTable.records.length > 0 && !dataTable.records[0].hasOwnProperty('__DC_ID__')) {
+          const idF = dataTable.idField || dataTable.fields[0];
+          dataTable.records.forEach((r: any) => { r.__DC_ID__ = String(r[idF]); });
+          needsSave = true;
+      }
+      if (dataTable.history) {
+          Object.values(dataTable.history).forEach((h: any) => {
+              if (h.records && h.records.length > 0 && !h.records[0].hasOwnProperty('__DC_ID__')) {
+                  const hIdF = h.idField || dataTable.idField || h.fields[0];
+                  h.records.forEach((r: any) => { r.__DC_ID__ = String(r[hIdF]); });
+                  needsSave = true;
+              }
+          });
+      }
+  });
+
   if (needsSave) {
-    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
   }
 
-  const keys = Object.keys(store);
   if (keys.length === 0) {
     list.innerHTML = "<li>No data tables stored yet.</li>";
     if (defaultSelect) defaultSelect.innerHTML = "";
@@ -935,10 +1197,10 @@ export async function renderDashboard() {
       defaultSelect.appendChild(opt);
     });
     
-    let currentDefault = await idbGet("DC_DEFAULT_DATA_TABLE");
+    let currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
     if (!currentDefault || !keys.includes(currentDefault)) {
       currentDefault = keys[0];
-      await idbSet("DC_DEFAULT_DATA_TABLE", currentDefault);
+      await idbSet(IDB_KEYS.DEFAULT_TABLE, currentDefault);
     }
     defaultSelect.value = currentDefault;
     
@@ -957,12 +1219,12 @@ export async function renderDashboard() {
           }
         }
       }
-      let currentDefaultRev = await idbGet("DC_DEFAULT_REVISION");
+      let currentDefaultRev = await idbGet(IDB_KEYS.DEFAULT_REVISION);
       if (currentDefaultRev && Array.from(defaultRevSelect.options).some(o => o.value === currentDefaultRev)) {
         defaultRevSelect.value = currentDefaultRev;
       } else {
         defaultRevSelect.selectedIndex = 0;
-        await idbSet("DC_DEFAULT_REVISION", defaultRevSelect.value);
+        await idbSet(IDB_KEYS.DEFAULT_REVISION, defaultRevSelect.value);
       }
 
       const localRevSelect = document.getElementById(`fb-rev-${tableName}`) as HTMLSelectElement;
@@ -975,13 +1237,17 @@ export async function renderDashboard() {
     await updateDefaultRevOptions(currentDefault);
 
     defaultSelect.onchange = async () => {
-      await idbSet("DC_DEFAULT_DATA_TABLE", defaultSelect.value);
+      await idbSet(IDB_KEYS.DEFAULT_TABLE, defaultSelect.value);
+      const tData = store[defaultSelect.value];
+      if (tData) {
+          await idbSet(IDB_KEYS.DEFAULT_REVISION, String(tData.revision || 1));
+      }
       await updateDefaultRevOptions(defaultSelect.value);
     };
 
     if (defaultRevSelect) {
       defaultRevSelect.onchange = async () => {
-        await idbSet("DC_DEFAULT_REVISION", defaultRevSelect.value);
+        await idbSet(IDB_KEYS.DEFAULT_REVISION, defaultRevSelect.value);
         
         const localRevSelect = document.getElementById(`fb-rev-${defaultSelect.value}`) as HTMLSelectElement;
         if (localRevSelect && localRevSelect.value !== defaultRevSelect.value) {
@@ -1100,7 +1366,7 @@ export async function renderDashboard() {
           if (defaultSelect && defaultSelect.value === key && defaultRevSelect) {
               if (defaultRevSelect.value !== revSelect.value) {
                   defaultRevSelect.value = revSelect.value;
-                  await idbSet("DC_DEFAULT_REVISION", revSelect.value);
+                  await idbSet(IDB_KEYS.DEFAULT_REVISION, revSelect.value);
               }
           }
         };
@@ -1162,17 +1428,17 @@ export async function renderDashboard() {
         };
 
         const addColumnBtn = document.createElement("button");
-        addColumnBtn.innerHTML = '<i class="ms-Icon ms-Icon--Add" style="margin-right:8px;"></i> Add Column';
+        addColumnBtn.innerHTML = '<i class="ms-Icon ms-Icon--Add" style="margin-right:8px;"></i> Add Empty Column';
         addColumnBtn.className = "ms-Button ms-Button--default w-100";
         addColumnBtn.onclick = () => addColumn(key);
 
-        const resortColumnsBtn = document.createElement("button");
-        resortColumnsBtn.innerHTML = '<i class="ms-Icon ms-Icon--Sort" style="margin-right:8px;"></i> Resort Columns';
-        resortColumnsBtn.className = "ms-Button ms-Button--default w-100";
-        resortColumnsBtn.onclick = () => resortColumns(key);
+        const editColumnsBtn = document.createElement("button");
+        editColumnsBtn.innerHTML = '<i class="ms-Icon ms-Icon--Sort" style="margin-right:8px;"></i> Edit Columns';
+        editColumnsBtn.className = "ms-Button ms-Button--default w-100"; 
+        editColumnsBtn.onclick = () => manageColumns(key);
 
         const captureRevBtn = document.createElement("button");
-        captureRevBtn.innerHTML = '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Capture New Revision';
+        captureRevBtn.innerHTML = '<i class="ms-Icon ms-Icon--Camera" style="margin-right:8px;"></i> Capture New Revision'; 
         captureRevBtn.className = "ms-Button ms-Button--primary w-100";
         captureRevBtn.onclick = () => captureNewRevision(key);
 
@@ -1189,7 +1455,7 @@ export async function renderDashboard() {
             captureRevBtn,
             replaceBtn,
             addColumnBtn,
-            resortColumnsBtn,
+            editColumnsBtn,
             snapshotBtn,
             exportCSVBtn
         ]);
@@ -1216,14 +1482,14 @@ export async function deleteDataTable(dataTableName: string) {
   const confirmed = await customConfirm("Delete Entire Table", `Are you sure you want to permanently delete the table '${dataTableName}' and all its history? This action cannot be undone.`, "Yes, Delete Everything");
   if (!confirmed) return;
 
-  const storedData = await idbGet("DC_STORE");
+  const storedData = await idbGet(IDB_KEYS.STORE);
   if (storedData) {
-    let store = JSON.parse(storedData);
+    let store: Store = JSON.parse(storedData);
     if (store[dataTableName]) {
       delete store[dataTableName];
     }
 
-    const defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    const defaultTable = await idbGet(IDB_KEYS.DEFAULT_TABLE);
     if (defaultTable === dataTableName) {
       await idbSet("DC_DEFAULT_DATA_TABLE", "");
       await idbSet("DC_DEFAULT_REVISION", "");
@@ -1244,9 +1510,9 @@ export async function deleteDataTable(dataTableName: string) {
 export async function deleteCurrentVersion(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
-    let store = JSON.parse(storedData);
+    let store: Store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
     if (!dataSet) return;
 
@@ -1264,6 +1530,7 @@ export async function deleteCurrentVersion(dataTableName: string) {
         const highestOldRev = historyKeys[0];
         dataSet.fields = dataSet.history[highestOldRev].fields;
         dataSet.records = dataSet.history[highestOldRev].records;
+        dataSet.idField = dataSet.history[highestOldRev].idField || dataSet.history[highestOldRev].fields[0];
         dataSet.revision = highestOldRev;
         delete dataSet.history[highestOldRev];
 
@@ -1288,11 +1555,11 @@ export async function deleteCurrentVersion(dataTableName: string) {
       }
     }
 
-    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
 
-    const defaultTable = await idbGet("DC_DEFAULT_DATA_TABLE");
+    const defaultTable = await idbGet(IDB_KEYS.DEFAULT_TABLE);
     if (defaultTable === dataTableName) {
-        let defaultRev = await idbGet("DC_DEFAULT_REVISION");
+        let defaultRev = await idbGet(IDB_KEYS.DEFAULT_REVISION);
         if (defaultRev === String(selectedRev)) {
             await idbSet("DC_DEFAULT_REVISION", store[dataTableName] ? String(store[dataTableName].revision || 1) : "1");
         }
@@ -1300,18 +1567,15 @@ export async function deleteCurrentVersion(dataTableName: string) {
 
     renderDashboard();
     refreshFormulas(true);
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error deleting version: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Error deleting version: " + error.message, "error");
   }
 }
 
 export async function createSnapshot(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     let store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1327,6 +1591,7 @@ export async function createSnapshot(dataTableName: string) {
     if (isLatest) {
       // Deep copy the current records to history
       dataSet.history[currentRev] = {
+        idField: dataSet.idField,
         fields: dataSet.fields,
         records: JSON.parse(JSON.stringify(dataSet.records))
       };
@@ -1341,11 +1606,13 @@ export async function createSnapshot(dataTableName: string) {
     } else {
       // Restore old revision as current
       dataSet.history[currentRev] = {
+        idField: dataSet.idField,
         fields: dataSet.fields,
         records: JSON.parse(JSON.stringify(dataSet.records))
       };
       dataSet.fields = JSON.parse(JSON.stringify(dataSet.history[selectedRev].fields));
       dataSet.records = JSON.parse(JSON.stringify(dataSet.history[selectedRev].records));
+      dataSet.idField = dataSet.history[selectedRev].idField || dataSet.fields[0];
       dataSet.revision = currentRev + 1;
 
       if (status) {
@@ -1354,21 +1621,20 @@ export async function createSnapshot(dataTableName: string) {
       }
     }
 
-    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
     
-    // Automatically set the new revision as default!
-    await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+    const currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
+    if (currentDefault === dataTableName) {
+        await idbSet(IDB_KEYS.DEFAULT_REVISION, String(dataSet.revision));
+    }
 
     renderDashboard();
     if (!isLatest) refreshFormulas(true);
-  } catch (error) {
-    if (status) {
-      if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
-        status.innerText = "Storage limit reached! Please use 'Clear History' or delete tables to free up space.";
-      } else {
-        status.innerText = "Error creating snapshot: " + error.message;
-      }
-      status.style.color = "red";
+  } catch (error: any) {
+    if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
+        showStatus("Storage limit reached! Please use 'Clear History' or delete tables to free up space.", "error");
+    } else {
+        showStatus("Error creating snapshot: " + error.message, "error");
     }
   }
 }
@@ -1380,7 +1646,7 @@ export async function addColumn(dataTableName: string) {
   if (!colName || colName.trim() === "") return;
 
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     let store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1403,6 +1669,7 @@ export async function addColumn(dataTableName: string) {
     // Create history backup before adding the column
     dataSet.history = dataSet.history || {};
     dataSet.history[dataSet.revision] = {
+      idField: dataSet.idField,
       fields: [...dataSet.fields],
       records: JSON.parse(JSON.stringify(dataSet.records))
     };
@@ -1411,8 +1678,11 @@ export async function addColumn(dataTableName: string) {
     dataSet.records.forEach((r: any) => { r[colName] = ""; });
     dataSet.revision += 1;
 
-    await idbSet("DC_STORE", JSON.stringify(store));
-    await idbSet("DC_DEFAULT_REVISION", String(dataSet.revision));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
+    const currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
+    if (currentDefault === dataTableName) {
+        await idbSet(IDB_KEYS.DEFAULT_REVISION, String(dataSet.revision));
+    }
     renderDashboard();
     refreshFormulas(true);
     
@@ -1420,18 +1690,15 @@ export async function addColumn(dataTableName: string) {
       status.innerText = `Added column '${colName}'. Current is Rev ${dataSet.revision}.`;
       status.style.color = "green";
     }
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Error adding column: " + error.message, "error");
   }
 }
 
-export async function resortColumns(dataTableName: string) {
+export async function manageColumns(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     let store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1446,49 +1713,82 @@ export async function resortColumns(dataTableName: string) {
       return;
     }
 
-    const newFields = await customSortPrompt("Resort Columns", `Drag and drop the columns below to reorder them for '${dataTableName}'.`, dataSet.fields);
+    const idField = dataSet.idField || dataSet.fields[0];
+    const promptResult = await customManageColumnsPrompt("Edit Columns", `Drag to reorder or click to rename columns for '${dataTableName}'.`, dataSet.fields, idField);
     
-    if (!newFields) return; // User cancelled
+    if (!promptResult) return; // User cancelled
 
-    // If the order hasn't changed, do nothing
-    if (dataSet.fields.join(",") === newFields.join(",")) return;
+    const columnChanges = promptResult.changes;
+    const newFields = columnChanges.map(c => c.newName);
     
-    // Validation: must have the exact same elements
-    const oldFieldsSorted = [...dataSet.fields].sort().join(",");
-    const newFieldsSorted = [...newFields].sort().join(",");
-    
-    if (oldFieldsSorted !== newFieldsSorted) {
-      if (status) { status.innerText = "Invalid column list."; status.style.color = "red"; }
-      return;
+    // Check for duplicates
+    const uniqueFields = new Set(newFields);
+    if (uniqueFields.size !== newFields.length) {
+        if (status) { status.innerText = "Column names must be unique."; status.style.color = "red"; }
+        return;
     }
 
-    // Create history backup before resorting
-    dataSet.history = dataSet.history || {};
-    dataSet.history[dataSet.revision] = {
-      fields: [...dataSet.fields],
-      records: JSON.parse(JSON.stringify(dataSet.records))
-    };
+    // If nothing changed
+    if (dataSet.fields.join(",") === newFields.join(",") && columnChanges.every(c => c.oldName === c.newName) && columnChanges.length === dataSet.fields.length) return;
+
+    const droppedFields = dataSet.fields.filter((f: string) => !columnChanges.find(c => c.oldName === f));
+
+    if (promptResult.saveAsNewRevision) {
+        // Create history backup before resorting
+        dataSet.history = dataSet.history || {};
+        dataSet.history[dataSet.revision] = {
+            idField: dataSet.idField,
+            fields: [...dataSet.fields],
+            records: JSON.parse(JSON.stringify(dataSet.records))
+        };
+        dataSet.revision += 1;
+    }
 
     dataSet.fields = newFields;
-    dataSet.revision += 1;
+    
+    const hasRenames = columnChanges.some(c => c.oldName !== c.newName) || droppedFields.length > 0;
+    if (hasRenames) {
+        dataSet.records.forEach((r: any) => {
+            columnChanges.forEach(c => {
+                if (c.oldName !== c.newName) {
+                    r[c.newName] = r[c.oldName];
+                    delete r[c.oldName];
+                }
+            });
+            droppedFields.forEach((df: string) => {
+                delete r[df];
+            });
+        });
+        
+        const idChange = columnChanges.find(c => c.oldName === dataSet.idField);
+        if (idChange && idChange.oldName !== idChange.newName) {
+            dataSet.idField = idChange.newName;
+        }
+    }
 
-    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
+    if (promptResult.saveAsNewRevision) {
+        const currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
+        if (currentDefault === dataTableName) {
+            await idbSet(IDB_KEYS.DEFAULT_REVISION, String(dataSet.revision));
+        }
+    }
     renderDashboard();
     refreshFormulas(true);
     
     if (status) {
-      status.innerText = `Columns resorted successfully. Current is Rev ${dataSet.revision}.`;
+      status.innerText = `Columns updated successfully. Current is Rev ${dataSet.revision}.`;
       status.style.color = "green";
     }
-  } catch (error) {
-    if (status) { status.innerText = "Error: " + error.message; status.style.color = "red"; }
+  } catch (error: any) {
+    showStatus("Error: " + error.message, "error");
   }
 }
 
 export async function loadRecordForEdit(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     let store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1502,13 +1802,13 @@ export async function loadRecordForEdit(dataTableName: string) {
         targetDataSet = dataSet.history[selectedRev];
     }
 
-    const idField = dataSet.idField || targetDataSet.fields[0];
-    const allIds = targetDataSet.records.map((r: any) => String(r[idField]));
+    const idField = targetDataSet.idField || dataSet.idField || targetDataSet.fields[0];
+    const allIds = targetDataSet.records.map((r: any) => String(r.__DC_ID__));
 
     const id = await customPrompt("Edit Record", `Enter the Record ID to edit in '${dataTableName}':`, "", allIds);
     if (!id || id.trim() === "") return;
 
-    const record = targetDataSet.records.find((r: any) => String(r[idField]) === String(id));
+    const record = targetDataSet.records.find((r: any) => String(r.__DC_ID__) === String(id));
 
     if (!record) {
         if (status) { status.innerText = `Record '${id}' not found.`; status.style.color = "red"; }
@@ -1526,7 +1826,7 @@ export async function loadRecordForEdit(dataTableName: string) {
     const editResult = await customFormPrompt(`Editing Record: ${id}`, "Update the values below:", formFields);
     if (!editResult) return;
 
-    const recordIndex = targetDataSet.records.findIndex((r: any) => String(r[idField]) === String(id));
+    const recordIndex = targetDataSet.records.findIndex((r: any) => String(r.__DC_ID__) === String(id));
     if (recordIndex === -1) return;
 
     targetDataSet.fields.forEach((field: string) => {
@@ -1535,22 +1835,19 @@ export async function loadRecordForEdit(dataTableName: string) {
         }
     });
 
-    await idbSet("DC_STORE", JSON.stringify(store));
+    await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
 
     if (status) {
         status.innerText = `Record updated. Refreshing Excel...`;
         status.style.color = "green";
     }
 
-    refreshFormulas(true);
-  } catch (error) {
-    if (status) {
-      if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
-        status.innerText = "Storage limit reached! Cannot save changes until you clear some space.";
-      } else {
-        status.innerText = "Error saving changes: " + error.message;
-      }
-      status.style.color = "red";
+    await refreshFormulas(true);
+  } catch (error: any) {
+    if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
+        showStatus("Storage limit reached! Cannot save changes until you clear some space.", "error");
+    } else {
+        showStatus("Error saving changes: " + error.message, "error");
     }
   }
 }
@@ -1558,7 +1855,7 @@ export async function loadRecordForEdit(dataTableName: string) {
 export async function exportCSV(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) throw new Error("No data found.");
 
     const store = JSON.parse(storedData);
@@ -1583,11 +1880,8 @@ export async function exportCSV(dataTableName: string) {
       status.innerText = `Exported ${dataTableName} (Rev ${selectedRev}) to CSV.`;
       status.style.color = "green";
     }
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error exporting CSV: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Error exporting CSV: " + error.message, "error");
   }
 }
 
@@ -1605,11 +1899,8 @@ export async function refreshFormulas(silent: boolean = false) {
       status.innerText = `Refreshed dashboard and ${count} DC formulas.`;
       status.style.color = "green";
     }
-  } catch (error) {
-    if (status && !silent) {
-      status.innerText = "Error: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    if (!silent) showStatus(error.message, "error");
   }
 }
 
@@ -1622,11 +1913,8 @@ export async function convertToValues() {
       status.innerText = `Converted ${count} DC formulas to values.`;
       status.style.color = "green";
     }
-  } catch (error) {
-    if (status) {
-      status.innerText = "Error: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus(error.message, "error");
   }
 }
 
@@ -1639,12 +1927,8 @@ export async function backupData() {
       status.innerText = "Backup downloaded successfully.";
       status.style.color = "green";
     }
-  } catch (error) {
-    const status = document.getElementById("status-text");
-    if (status) {
-      status.innerText = "Backup error: " + error.message;
-      status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Backup error: " + error.message, "error");
   }
 }
 
@@ -1657,16 +1941,16 @@ export async function restoreData(event: any) {
   try {
     await processRestoreFile(event);
     if (status) { status.innerText = "Data restored successfully."; status.style.color = "green"; }
-    renderDashboard();
-    refreshFormulas(true);
-  } catch (error) {
-    if (status) { status.innerText = "Restore error: " + error.message; status.style.color = "red"; }
+    await renderDashboard();
+    await refreshFormulas(true);
+  } catch (error: any) {
+    showStatus("Restore error: " + error.message, "error");
   }
 }
 
 export async function insertDropdown(dataTableName: string) {
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     const store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1685,19 +1969,15 @@ export async function insertDropdown(dataTableName: string) {
       status.innerText = `Inserted headers dropdown for ${dataTableName}`;
       status.style.color = "green";
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    const status = document.getElementById("status-text");
-    if (status) {
-      status.innerText = "Error inserting dropdown: " + error.message;
-      status.style.color = "red";
-    }
+    showStatus("Error inserting dropdown: " + error.message, "error");
   }
 }
 
 export async function insertTable(dataTableName: string) {
   try {
-    const storedData = await idbGet("DC_STORE");
+    const storedData = await idbGet(IDB_KEYS.STORE);
     if (!storedData) return;
     const store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
@@ -1717,11 +1997,7 @@ export async function insertTable(dataTableName: string) {
        status.innerText = `Inserted table for ${dataTableName}`;
        status.style.color = "green";
     }
-  } catch (error) {
-    const status = document.getElementById("status-text");
-    if (status) {
-       status.innerText = "Error inserting table: " + error.message;
-       status.style.color = "red";
-    }
+  } catch (error: any) {
+    showStatus("Error inserting table: " + error.message, "error");
   }
 }

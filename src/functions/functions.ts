@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { getTableData } from "../services/dataService";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { getTableData } from "../services/dataService";
 import { idbGet } from "../utils/db";
 
 /**
@@ -27,8 +27,7 @@ export async function dcGet(id?: any, fieldName?: string, dataTableName?: string
       return [headers];
     }
 
-    const actualIdField = dataSet.idField || (table as any).idField || headers[0];
-    const record = records.find((r: any) => String(r[actualIdField]) === String(id));
+    const record = records.find((r: any) => String(r.__DC_ID__) === String(id));
 
     if (!record) {
       return [["Not Found"]];
@@ -175,12 +174,11 @@ export async function dcJoin(baseTableName: string, foreignKeyField: string, for
     const store = storeRaw ? JSON.parse(storeRaw) : {};
     const foreignDataSet = store[foreignTableName] || {};
 
-    const foreignIdField = foreignDataSet.idField || (foreignTable as any).idField || foreignTable.fields[0];
     const newHeaders = [...baseTable.fields, foreignReturnField];
 
     const resultRows = baseTable.records.map((bRec: any) => {
       const fKey = bRec[foreignKeyField];
-      const fRec = foreignTable.records.find((f: any) => String(f[foreignIdField]) === String(fKey));
+      const fRec = foreignTable.records.find((f: any) => String(f.__DC_ID__) === String(fKey));
       const fVal = fRec && fRec[foreignReturnField] !== undefined ? fRec[foreignReturnField] : "N/A";
       
       const rowData = baseTable.fields.map(f => bRec[f] !== undefined ? bRec[f] : "");
@@ -193,13 +191,67 @@ export async function dcJoin(baseTableName: string, foreignKeyField: string, for
   }
 }
 
+/**
+ * Returns all records sorted by a specific column.
+ * @customfunction SORT
+ * @param {string} sortField The column name to sort by.
+ * @param {boolean} [ascending] Optional. Sort ascending (TRUE) or descending (FALSE). Default is TRUE.
+ * @param {string} [dataTableName] Optional. The name of the data table. Uses default if empty.
+ * @param {number} [rev] Optional. The revision number. Uses the latest by default.
+ * @returns A dynamic array of sorted records (including headers).
+ */
+export async function dcSort(sortField: string, ascending: boolean = true, dataTableName?: string, rev?: number): Promise<any[][]> {
+  try {
+    const table = await getTableData(dataTableName, rev);
+    if (table.error) return [[table.error]];
+
+    if (!table.fields.includes(sortField)) {
+      return [[`Sort Field '${sortField}' not found`]];
+    }
+
+    const sortedRecords = [...table.records].sort((a: any, b: any) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+      
+      if (valA === undefined || valA === null) valA = "";
+      if (valB === undefined || valB === null) valB = "";
+
+      const numA = Number(valA);
+      const numB = Number(valB);
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return ascending ? numA - numB : numB - numA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+
+      if (strA < strB) return ascending ? -1 : 1;
+      if (strA > strB) return ascending ? 1 : -1;
+      return 0;
+    });
+
+    const resultRows = sortedRecords.map((r: any) => table.fields.map(f => r[f] !== undefined ? r[f] : ""));
+    return [table.fields, ...resultRows];
+  } catch (error) {
+    return [[`Func Error: ${error.message || error}`]];
+  }
+}
+
 // Explicitly associate functions for Shared Runtime to ensure Excel finds them during background initialization
 if (!(globalThis as any)._dcFunctionsRegistered) {
   (globalThis as any)._dcFunctionsRegistered = true;
-  CustomFunctions.associate("GET", dcGet);
-  CustomFunctions.associate("SEARCH", dcSearch);
-  CustomFunctions.associate("FILTER", dcFilter);
-  CustomFunctions.associate("SUM", dcSum);
-  CustomFunctions.associate("SUMIFS", dcSumifs);
-  CustomFunctions.associate("JOIN", dcJoin);
+  
+  // Use computed property access to prevent the Webpack metadata plugin from throwing [DuplicatedName] during build
+  const registerCustomFunction = (id: string, func: any) => {
+    const cf = (globalThis as any).CustomFunctions;
+    if (cf) cf["associate"](id, func);
+  };
+  registerCustomFunction("GET", dcGet);
+  registerCustomFunction("SEARCH", dcSearch);
+  registerCustomFunction("FILTER", dcFilter);
+  registerCustomFunction("SUM", dcSum);
+  registerCustomFunction("SUMIFS", dcSumifs);
+  registerCustomFunction("JOIN", dcJoin);
+  registerCustomFunction("SORT", dcSort);
 }
