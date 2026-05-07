@@ -10,7 +10,7 @@
   <HighResolutionIconUrl DefaultValue="https://m-azem.github.io/data-controller-addin/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://github.com/m-Azem/data-controller-addin"/>
   <AppDomains>
-    <AppDomain>https://localhost:3000</AppDomain>
+    <AppDomain>https://m-azem.github.io</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>
