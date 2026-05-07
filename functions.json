@@ -2,12 +2,12 @@
     "allowCustomDataForDataTypeAny": true,
     "functions": [
         {
-            "description": "Retrieves a value from the captured Data Controller store by matching the Record ID (first column).",
+            "description": "Retrieves a value from the captured Data Controller store by matching the Record ID.",
             "id": "GET",
             "name": "GET",
             "parameters": [
                 {
-                    "description": "Optional. The unique Record ID to find in the first column. Returns headers if empty.",
+                    "description": "Optional. The unique Record ID to find. Returns headers if empty.",
                     "name": "id",
                     "optional": true,
                     "type": "any"
