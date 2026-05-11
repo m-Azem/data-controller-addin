@@ -36,6 +36,21 @@
             }
         },
         {
+            "description": "Retrieves the evaluated result of a Global Variable.",
+            "id": "VAR",
+            "name": "VAR",
+            "parameters": [
+                {
+                    "description": "The exact name of the Global Variable to retrieve.",
+                    "name": "varName",
+                    "type": "string"
+                }
+            ],
+            "result": {
+                "dimensionality": "matrix"
+            }
+        },
+        {
             "description": "Searches for a value in a specific column and returns multiple matching records.",
             "id": "SEARCH",
             "name": "SEARCH",

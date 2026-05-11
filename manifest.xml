@@ -10,7 +10,7 @@
   <HighResolutionIconUrl DefaultValue="https://m-azem.github.io/data-controller-addin/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://github.com/m-Azem/data-controller-addin"/>
   <AppDomains>
-    <AppDomain>https://localhost:3000</AppDomain>
+    <AppDomain>https://m-azem.github.io/data-controller-addin</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>
@@ -97,7 +97,7 @@
       <bt:ShortStrings>
         <bt:String id="Functions.Namespace" DefaultValue="DC"/>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Data Controller!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="DC"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="TESTing"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Data Controller"/>
       </bt:ShortStrings>
       <bt:LongStrings>
