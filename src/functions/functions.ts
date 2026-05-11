@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { getTableData } from "../services/dataService";
+﻿﻿import { getTableData, getGlobalVariable } from "../services/dataService";
 import { idbGet } from "../utils/db";
 
 /**
@@ -38,6 +38,21 @@ export async function dcGet(id?: any, fieldName?: string, dataTableName?: string
     }
     return [[record[fieldName] !== undefined ? record[fieldName] : "Field Error"]];
   } catch (error) {
+    return [[`Func Error: ${error.message || error}`]];
+  }
+}
+
+/**
+ * Retrieves the evaluated result of a Global Variable.
+ * @customfunction VAR
+ * @param {string} varName The exact name of the Global Variable to retrieve.
+ * @returns The evaluated variable result.
+ */
+export async function dcVar(varName: string): Promise<any[][]> {
+  try {
+    const result = await getGlobalVariable(varName);
+    return [[result]];
+  } catch (error: any) {
     return [[`Func Error: ${error.message || error}`]];
   }
 }
@@ -236,22 +251,4 @@ export async function dcSort(sortField: string, ascending: boolean = true, dataT
   } catch (error) {
     return [[`Func Error: ${error.message || error}`]];
   }
-}
-
-// Explicitly associate functions for Shared Runtime to ensure Excel finds them during background initialization
-if (!(globalThis as any)._dcFunctionsRegistered) {
-  (globalThis as any)._dcFunctionsRegistered = true;
-  
-  // Use computed property access to prevent the Webpack metadata plugin from throwing [DuplicatedName] during build
-  const registerCustomFunction = (id: string, func: any) => {
-    const cf = (globalThis as any).CustomFunctions;
-    if (cf) cf["associate"](id, func);
-  };
-  registerCustomFunction("GET", dcGet);
-  registerCustomFunction("SEARCH", dcSearch);
-  registerCustomFunction("FILTER", dcFilter);
-  registerCustomFunction("SUM", dcSum);
-  registerCustomFunction("SUMIFS", dcSumifs);
-  registerCustomFunction("JOIN", dcJoin);
-  registerCustomFunction("SORT", dcSort);
 }

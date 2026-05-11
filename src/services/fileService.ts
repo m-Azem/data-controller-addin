@@ -29,9 +29,18 @@ export async function exportCSVData(dataTableName: string, selectedRev: number, 
 
 export async function downloadBackup() {
   const storedData = await idbGet("DC_STORE");
+  const variablesData = await idbGet("DC_VARIABLES");
+  
   if (!storedData || storedData === "{}") throw new Error("No data to backup.");
   
-  const blob = new Blob([storedData], { type: "application/json" });
+  const backupObject = {
+      type: "DataControllerBackup",
+      version: 2,
+      store: JSON.parse(storedData),
+      variables: variablesData ? JSON.parse(variablesData) : {}
+  };
+
+  const blob = new Blob([JSON.stringify(backupObject, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -55,7 +64,17 @@ export async function processRestoreFile(event: any): Promise<void> {
         const parsed = JSON.parse(content);
         if (typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid backup file format.");
         
-        await idbSet("DC_STORE", JSON.stringify(parsed));
+        if (parsed.type === "DataControllerBackup" && parsed.store) {
+            // New Format (Includes Variables)
+            await idbSet("DC_STORE", JSON.stringify(parsed.store));
+            if (parsed.variables) {
+                await idbSet("DC_VARIABLES", JSON.stringify(parsed.variables));
+            }
+        } else {
+            // Legacy Format (Store only)
+            await idbSet("DC_STORE", JSON.stringify(parsed));
+        }
+        
         input.value = ""; // Reset input
         resolve();
       } catch (err) {

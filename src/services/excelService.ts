@@ -7,6 +7,13 @@ export async function executeInsertTable(headers: string[], records: any[]) {
     const activeCell = context.workbook.getActiveCell();
     const range = activeCell.getResizedRange(matrix.length - 1, matrix[0].length - 1);
     range.values = matrix;
+    range.format.wrapText = false;
+    
+    const table = context.workbook.tables.add(range, true);
+    table.name = `DCTable_${Date.now()}`;
+    table.style = "TableStyleLight1";
+    table.showBandedRows = false;
+    
     await context.sync();
   });
 }
