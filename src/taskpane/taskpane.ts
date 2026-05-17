@@ -5,7 +5,7 @@ import { migrateFromLocalStorage } from "../services/migration";
 import { exportCSVData, downloadBackup, processRestoreFile } from "../services/fileService";
 import { executeInsertTable, executeInsertDropdown, executeConvertToValues, executeRefreshFormulas } from "../services/excelService";
 
-const APP_VERSION = "1.0.1"; // Update this number whenever you release a new version
+const APP_VERSION = "1.0.2"; // Update this number whenever you release a new version
 
 // Translation Dictionary
 const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -16,9 +16,15 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         revision: "Revision",
         workspaces: "Workspaces",
         formula_builder: "Visual Formula Builder",
+        refresh_btn_title: "Refresh Dashboard & Formulas",
+        convert_btn_title: "Convert DC Formulas to Values",
+        formula_builder_desc: "Select a function and fill in the parameters. Cell references (e.g. <code>A1</code>) are supported.",
+        select_function: "Select Function",
         global_variables: "Global Variables",
+        global_variables_desc: "Define standalone variables using table data (e.g., <code>DC.SUM('Table', 'Col')</code>).",
         add_variable: "Add Variable",
         backup_restore: "Data Backup & Restore",
+        backup_restore_desc: "Download a backup of your data or restore it from a file.",
         backup_data: "Backup Data",
         restore_data: "Restore Data",
         theme_appearance: "Theme Appearance",
@@ -31,38 +37,401 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         clear_btn: "Clear",
         status_ready: "Ready",
         global_relations: "Global Relations",
+        global_relations_desc: "Manage structural links between your tables.",
         manage_relations: "Add / Manage Relations",
         manage_workspaces: "Manage Workspaces",
-        add_workspace: "Add Workspace"
-    },
-    ar: { // Keeping Arabic dictionary for future use, even if UI selection is hidden
-        app_title: "متحكم البيانات",
-        status_label: "الحالة:",
-        default_table: "الجدول الافتراضي (للمعادلات)",
-        revision: "النسخة",
-        workspaces: "مساحات العمل",
-        formula_builder: "منشئ المعادلات المرئي",
-        global_variables: "المتغيرات العامة",
-        add_variable: "إضافة متغير",
-        backup_restore: "النسخ الاحتياطي والاستعادة",
-        backup_data: "نسخ احتياطي",
-        restore_data: "استعادة البيانات",
-        theme_appearance: "المظهر",
-        dark_theme: "تفعيل الوضع الداكن",
-
-        manage_workspaces: "Manage Workspaces",
-        add_workspace: "Add Workspace"
+        add_workspace: "Add Workspace",
+        settings: "Settings",
+        help_desc: "Need assistance or want to learn how to use Data Controller?",
+        about_app_ver: "App Version:",
+        close_settings: "Close Settings",
+        tables_btn: "Tables",
+        target_revision: "Target Revision:",
+        insert_sheet: "Insert to Sheet",
+        replace_version: "Replace Version",
+        append_data: "Append Data",
+        snapshot: "Snapshot",
+        del_version: "Del Version",
+        del_table: "Del Table",
+        export_csv: "Export CSV",
+        headers_dropdown: "Headers Dropdown",
+        form_editor: "Form Editor",
+        grid_editor: "Grid Editor",
+        clone_record: "Clone Record",
+        manage_columns: "Manage Columns",
+        move_workspace: "Move Workspace",
+        new_revision: "New Revision",
+        clone_sub_records: "Clone Sub-records",
+        data_entry_views: "Data Entry & Views",
+        schema_operations: "Schema & Operations",
+        versioning_danger_zone: "Versioning & Danger Zone",
+        no_tables_in_ws: "No tables in this workspace.",
+        no_tables: "No data tables stored yet.",
+        no_workspaces: "No workspaces or data tables stored yet.",
+        manage_ws_title: "Manage Workspaces",
+        manage_ws_desc: "Drag to reorder, edit to rename. Click the trash icon to mark for deletion.",
+        manage_tb_title: "Manage Tables: {0}",
+        manage_tb_desc: "Drag to reorder. Click the trash icon to mark for deletion. (Renaming disabled)",
+        add_new_table: "Add New Table",
+        del_table_title: "Delete Entire Table",
+        del_table_msg: "Are you sure you want to permanently delete the table '{0}' and all its history? This action cannot be undone.",
+        del_table_confirm: "Yes, Delete Everything",
+        del_version_title: "Confirm Deletion",
+        del_version_latest_msg: "Are you sure you want to delete the current version of '{0}' and rollback to the previous revision?",
+        del_version_hist_msg: "Are you sure you want to delete historical Rev {0} from '{1}'?",
+        del_version_confirm: "Yes, Delete",
+        snapshot_locked_msg: "Locked Rev {0}. Current is now Rev {1}",
+        snapshot_restored_msg: "Restored Rev {0} as new active Rev {1}.",
+        edit_cols_title: "Edit Columns",
+        edit_cols_msg: "Drag to reorder, add new columns, rename them, or attach Calculated Formulas.",
+        edit_record_title: "Edit Record",
+        edit_record_msg: "Enter the Record ID to edit in '{0}':",
+        edit_record_update_msg: "Update the values below:",
+        edit_record_not_found: "Record '{0}' not found.",
+        export_csv_msg: "Exported {0} (Rev {1}) to CSV.",
+        insert_dropdown_msg: "Inserted headers dropdown for {0}",
+        insert_table_title: "Insert Table",
+        insert_table_msg: "Select columns to insert:",
+        insert_table_confirm: "Insert",
+        insert_table_success: "Inserted table for {0}",
+        split_editor_loading: "Loading Split Editor...",
+        split_editor_fix_err: "Please fix the errors in your current editor before opening a new one.",
+        split_editor_success: "Opened Split Editor for {0} and {1}. Arrange windows side-by-side.",
+        grid_editor_opened_sub: "Opened Sub-table ({0}: {1})",
+        grid_editor_opened: "Opened '{0}'",
+        manage_rel_title: "Manage Relations",
+        manage_rel_select_table: "Select a table to manage its relations:",
+        manage_rel_manage_msg: "Manage relations for '{0}':",
+        manage_rel_keep: "Existing Relations (Uncheck to remove)",
+        manage_rel_add_target: "Add New: Target Table",
+        manage_rel_add_link: "Add New: Link Column",
+        manage_rel_none: "-- None --",
+        append_data_title: "Append Data",
+        append_data_msg: "Review data to append to '{0}' ({1} rows detected).",
+        clone_sub_title: "Clone Sub-records",
+        clone_sub_select_target: "Select the target sub-table to clone:",
+        clone_sub_relation: "Sub-table Relation",
+        clone_from: "Clone from '{0}'",
+        clone_select_ids: "Select the Source ID and Target ID(s):",
+        clone_source_id: "Source Record ID (Copy FROM)",
+        clone_target_ids: "Target Record IDs (Copy TO)",
+        move_ws_title: "Move Workspace",
+        move_ws_msg: "Select or type a new workspace for '{0}':",
+        add_var_title: "Add Variable",
+        add_var_msg: "Define a global variable:",
+        add_var_name: "Variable Name",
+        add_var_formula: "Formula Definition",
+        add_ws_title: "Add Workspace",
+        add_ws_msg: "Enter a name for the new workspace:",
+        add_ws_added_title: "Workspace Added",
+        add_ws_added_msg: "The workspace '{0}' was created. Do you want to capture a new data table for it now?",
+        add_ws_capture_btn: "Yes, Capture Table",
+        dup_record_title: "Duplicate Record",
+        dup_record_msg: "Select the record to duplicate and provide a new ID:",
+        dup_record_new_id: "New Record ID",
+        delete_ws_title: "Delete Workspace",
+        delete_ws_msg: "Are you sure you want to permanently delete '{0}' and ALL its {1} tables?",
+        delete_tb_title: "Delete Table",
+        delete_tb_msg: "Permanently delete table '{0}'?",
+        add_tb_title: "Add Table",
+        add_tb_msg: "Create a new table in the '{0}' workspace.",
+        add_tb_name: "Data Table Name",
+        add_tb_parent: "Parent Table (Optional Link)",
+        capture_tb_title: "Capture New Table",
+        capture_tb_msg: "Review and map columns for '{0}' ({1} rows detected).",
+        link_sub_title: "Link Sub-table",
+        link_sub_msg: "Which column in '{0}' links to '{1}'?",
+        link_col: "Link Column",
+        review_formulas_title: "Review Detected Formulas",
+        review_formulas_msg: "We converted your Excel formulas. Adjust them below using the visual formula builder, or clear the text to skip:",
+        save_formulas: "Save Formulas",
+        replace_ver_title: "Replace Version",
+        replace_ver_msg: "Review replacing data for '{0}' ({1} rows detected).",
+        capture_rev_title: "Capture New Revision",
+        capture_rev_msg: "Review data for new revision of '{0}' ({1} rows detected).",
+        mark_for_deletion: "Mark for Deletion",
+        mark_deletion_msg: "Are you sure you want to delete '{0}'? It will be permanently removed when you save changes.",
+        delete_link_title: "Delete Link",
+        delete_link_msg: "Are you sure you want to permanently remove the link between '{0}' and '{1}'?",
+        link_removed_success: "Link removed successfully.",
+        add_rollup_title: "Add Rollup",
+        add_rollup_msg: "Would you like to add a Calculated Field in '{0}' to summarize data from '{1}'?",
+        rollup_field_title: "Rollup Field",
+        rollup_field_msg: "Define the rollup:",
+        rollup_field_name: "New Field Name (e.g. Total Cost)",
+        rollup_type: "Aggregation Type",
+        rollup_col: "Column to Aggregate (for SUM)",
+        no_relations: "No relations defined yet.",
+        rev_latest: "Rev {0} (Latest)",
+        rev_history: "Rev {0}",
+        rows: "rows",
+        "Data Table Name": "Data Table Name",
+        "Revision": "Revision",
+        "Source Record ID": "Source Record ID",
+        formula_for: "Formula for '{0}'",
+        define_calc_formula: "Define calculated formula (leave empty to remove):",
+        yes_btn: "Yes",
+        funcs_label: "FUNCS:",
+        vars_label: "VARS:",
+        tables_label: "TABLES:",
+        fields_label: "Fields:",
+        main_data_table: "Main Data Table",
+        next_btn: "Next",
+        cancel_btn: "Cancel",
+        save_changes_btn: "Save Changes",
+        add_column_btn: "Add Column",
+        delete_selected_btn: "Delete Selected",
+        save_current_rev_btn: "Save Current Revision",
+        save_new_rev_btn: "Save as New Revision",
+        back_btn: "Back",
+        optional_label: "(Optional)",
+        wizard_step_indicator: "Step {0} / {1}",
+        ok_btn: "OK",
+        edit_record_title_with_id: "Editing Record: {0}",
+        columns_label: "Columns",
+        workspace_label: "Workspace",
+        source_record_id_label: "Source Record ID",
+        manage_btn: "Manage",
+        refresh_btn: "Refresh",
+        editor_mode_desc: "Make your changes directly in the spreadsheet. Tip: Go to View > New Window > Arrange All to edit this table side-by-side with your main data. Click Save when you are finished to sync the data.",
+        live_sync_active: "<i class=\"ms-Icon ms-Icon--SyncOccurence\"></i> Live Sync Active",
+        editing_title: "You are currently editing table ",
+        error_general: "Error: ",
+        no_data_table_specified: "Error: No data table specified.",
+        no_data_captured: "Error: No data captured.",
+        data_table_not_found: "Error: Data table not found.",
+        revision_not_found: "Error: Revision not found.",
+        db_error_prefix: "DB Error: ",
+        variable_not_found: "Error: Variable not found",
+        circular_reference_detected: "Circular reference detected",
+        data_service_error_prefix: "Error: ",
+        no_data_to_backup: "No data to backup.",
+        no_file_selected: "No file selected.",
+        invalid_backup_file_format: "Invalid backup file format.",
+        error_reading_file: "Error reading file.",
+        not_found: "Not Found",
+        field_error: "Field Error",
+        func_error_prefix: "Func Error: ",
+        base_table_error_prefix: "Base Table Error: ",
+        foreign_table_error_prefix: "Foreign Table Error: ",
+        na_value: "N/A",
+        sort_field_not_found: "Sort Field '{0}' not found",
+        select_option: "Select...",
+        true_text: "TRUE",
+        false_text: "FALSE",
+        field_is_required: "'{0}' is required.",
+        inserted_formula: "Inserted formula: {0}",
+        column_generic: "Column {0}",
+        name_placeholder: "Name",
+        id_badge: "(ID)",
+        cannot_delete_id_column_msg: "Cannot delete the Primary ID column ('{0}').",
+        table_name_required_error: "Table Name is required.",
+        table_already_exists_error: "Table '{0}' already exists.",
+        workspace_name_required_error: "Workspace name is required.",
+        primary_id_column_missing_error: "Primary ID column is missing.",
+        row_has_empty_id_error: "Row {0} has an empty ID.",
+        duplicate_id_found_error: "Duplicate ID found: '{0}'.",
+        all_column_names_must_be_unique_error: "All column names must be unique.",
+        link_column_required_error: "Link Column is required.",
+        select_range_for_table_creation: "Select a range with headers and data to create a table.",
+        public_workspace: "Public",
+        saved_records_in_table: "Saved {0} records in {1}.",
+        formula_detected_label: "{0} (Detected: {1})",
+        mapped_formulas_for: "Mapped formulas for: {0}",
+        select_range_with_headers_and_data: "Select a range with headers and data.",
+        data_table_not_found_error: "Data table '{0}' not found.",
+        replaced_table_with_records: "Replaced '{0}' with {1} new records. (ID: '{2}')",
+        replaced_rev_of_table_with_records: "Replaced Rev {0} of '{1}' with {2} records.",
+        error_replacing_data: "Error replacing data: ",
+        captured_rev_for_table: "Captured Rev {0} for '{1}' with {2} records.",
+        error_capturing_new_revision: "Error capturing new revision: ",
+        no_data_tables_stored_yet: "No data tables stored yet.",
+        no_workspaces_or_tables_stored_yet: "No workspaces or data tables stored yet.",
+        rev_latest_history: "Rev {0}{1}",
+        rev_latest_suffix: " (Latest)",
+        link_column: "Link Column",
+        open_split_editor_btn: "Open Split Editor",
+        delete_link_btn: "Delete Link",
+        rev_count_rows: "Rev {0} • {1} rows",
+        revision_latest_history: "Revision {0}{1}",
+        restore_snapshot: "Restore",
+        no_tables_in_this_workspace: "No tables in this workspace.",
+        deleted_entire_data_table: "Deleted entire data table: {0}",
+        deleted_current_version_rolled_back: "Deleted current version. Rolled back to Rev {0}.",
+        deleted_only_version_table_removed: "Deleted the only version. Table '{0}' removed.",
+        deleted_historical_rev: "Deleted historical Rev {0} from '{1}'.",
+        error_deleting_version: "Error deleting version: ",
+        locked_rev_current_is: "Locked Rev {0}. Current is now Rev {1}",
+        restored_rev_as_new_active: "Restored Rev {0} as new active Rev {1}.",
+        storage_limit_reached: "Storage limit reached! Please clear space.",
+        error_creating_snapshot: "Error creating snapshot: ",
+        cannot_resort_historical_revision: "Cannot resort columns of a historical revision.",
+        column_names_must_be_unique: "Column names must be unique.",
+        columns_updated_successfully: "Columns updated successfully. Current is Rev {0}.",
+        enter_record_id_to_edit: "Enter the Record ID to edit in '{0}':",
+        record_not_found_error: "Record '{0}' not found.",
+        calculated_label: " (Calculated)",
+        record_updated_refreshing_excel: "Record updated. Refreshing Excel...",
+        storage_limit_reached_cannot_save: "Storage limit reached! Cannot save changes.",
+        error_saving_changes: "Error saving changes: ",
+        no_data_found_error: "No data found.",
+        no_data_found_for_revision_error: "No data found for this revision.",
+        exported_table_to_csv: "Exported {0} (Rev {1}) to CSV.",
+        error_exporting_csv: "Error exporting CSV: ",
+        refreshing_dashboard_formulas: "Refreshing dashboard & formulas... Please wait.",
+        refreshed_dashboard_formulas: "Refreshed dashboard and {0} DC formulas.",
+        converting_please_wait: "Converting... Please wait.",
+        converted_formulas_to_values: "Converted {0} DC formulas to values.",
+        backup_downloaded_successfully: "Backup downloaded successfully.",
+        backup_error: "Backup error: ",
+        data_restored_successfully: "Data restored successfully.",
+        restore_error: "Restore error: ",
+        no_headers_found_error: "No headers found.",
+        inserted_headers_dropdown: "Inserted headers dropdown for {0}",
+        error_inserting_dropdown: "Error inserting dropdown: ",
+        no_data_found_for_table_error: "No data found for this data table.",
+        select_columns_to_insert: "Select columns to insert:",
+        excel_formula_js_syntax_error: "Formulas contained invalid syntax and were inserted as text.",
+        inserted_table_for: "Inserted table for {0}",
+        error_inserting_table: "Error inserting table: ",
+        unknown_table_name: "Unknown",
+        loading_split_editor: "Loading Split Editor...",
+        fix_errors_before_new_editor: "Please fix the errors in your current editor before opening a new one.",
+        new_record_id_placeholder: "NEW",
+        opened_split_editor_arrange_windows: "Opened Split Editor for {0} and {1}. Arrange windows side-by-side.",
+        error_opening_split_editor: "Error opening split editor: ",
+        opened_sub_table_in_editor: "Opened Sub-table ({0}: {1})",
+        opened_table_in_grid_editor: "Opened '{0}' in Grid Editor.",
+        error_opening_grid_editor: "Error opening Grid Editor: ",
+        row_has_empty_id_in_table_error: "Row {0} has an empty ID in {1}.",
+        duplicate_id_found_in_table_error: "Duplicate ID found: '{0}' in {1}.",
+        saved_records: "Saved {0} records.",
+        no_changes_detected: "No changes detected.",
+        error_saving_grid_editor: "Error saving Grid Editor: ",
+        auto_syncing_switching_to_record: "Auto-syncing... Switching to Record {0}",
+        switched_sub_table_to_record: "Switched Sub-table to Record {0}",
+        error_switching_record: "Error switching record: ",
+        error_canceling_grid_editor: "Error canceling Grid Editor: ",
+        relation_link_suffix: "{0} (Link: {1})",
+        relations_updated_for: "Relations updated for '{0}'",
+        define_the_rollup: "Define the rollup:",
+        added_rollup_field: "Added rollup field '{0}'",
+        error_managing_relations: "Error managing relations: ",
+        cannot_append_to_historical_revision: "Cannot append data to a historical revision.",
+        review_data_to_append: "Review data to append to '{0}' ({1} rows detected).",
+        duplicate_id_already_exists_error: "Duplicate ID found: '{0}' already exists in '{1}'.",
+        appended_records_current_is: "Appended {0} records. Current is Rev {1}.",
+        error_appending_data: "Error appending data: ",
+        no_relations_defined_for_table: "No relations defined for this table.",
+        relation_fk_suffix: "{0} (FK: {1})",
+        select_target_sub_table_to_clone: "Select the target sub-table to clone:",
+        clone_from_table: "Clone from '{0}'",
+        select_source_target_ids: "Select the Source ID and Target ID(s):",
+        no_sub_records_found: "No sub-records found for Source ID '{0}'.",
+        cloned_id_prefix: "CLONED_",
+        successfully_cloned_sub_records: "Successfully cloned {0} sub-records to {1} target(s).",
+        error_cloning_sub_records: "Error cloning sub-records: ",
+        select_or_type_new_workspace: "Select or type a new workspace for '{0}':",
+        moved_table_to_workspace: "Moved '{0}' to '{1}'.",
+        error_moving_table: "Error moving table: ",
+        variable_name_required: "Variable Name is required.",
+        formula_required: "Formula is required.",
+        loop_detected: "Loop Detected",
+        variable_cannot_reference_itself: "Variable cannot reference itself",
+        variable_saved: "Variable '{0}' saved.",
+        invalid_formula_for_variable: "Invalid Formula for '{0}': {1}",
+        error_adding_workspace: "Error adding workspace: ",
+        error_text: "ERROR",
+        loop_error: "LOOP ERROR",
+        insert_to_sheet: "Insert to Sheet",
+        inserted_variable_to_sheet: "Inserted variable '{0}' to sheet.",
+        error_inserting_variable: "Error inserting variable: ",
+        delete_variable: "Delete Variable",
+        record_id_already_exists: "Record ID '{0}' already exists in '{1}'.",
+        source_record_not_found: "Source record '{0}' not found.",
+        successfully_duplicated_record: "Successfully duplicated record '{0}' to '{1}' along with {2} sub-records.",
+        error_duplicating_record: "Error duplicating record: ",
+        param_record_id: "Record ID",
+        param_field_name: "Field Name",
+        param_data_table_name: "Data Table Name",
+        param_revision: "Revision",
+        param_search_field: "Search Field",
+        param_search_value: "Search Value",
+        param_return_field: "Return Field",
+        param_exact_match: "Exact Match (TRUE/FALSE)",
+        param_sum_field: "Sum Field",
+        param_criteria_field: "Criteria Field",
+        param_criteria_value: "Criteria Value",
+        param_base_table_name: "Base Table Name",
+        param_link_column: "Link Column",
+        param_target_table_name: "Target Table Name",
+        param_target_return_field: "Target Return Field",
+        param_sort_field: "Sort Field",
+        param_ascending: "Ascending (TRUE/FALSE)",
+        param_variable_name: "Variable Name",
+        save_btn: "Save",
+        loading_text: "Loading...",
+        col_name_placeholder: "Column Name",
+        new_col_name_placeholder: "New Column Name",
+        new_column_default: "New Column",
+        formula_def_label: "Formula Definition",
+        edit_formula_tooltip: "Edit Formula: {0}",
+        add_formula_tooltip: "Add Formula",
+        cannot_delete_id_col_tooltip: "Cannot delete ID column",
+        primary_id_col_tooltip: "Primary ID Column",
+        id_col_must_be_present: "The Primary ID column must be present in the table.",
+        row_empty_id_strict: "Row {0} has an empty ID. IDs must be non-empty.",
+        duplicate_id_strict: "Duplicate ID found: '{0}'. All IDs must be unique.",
+        this_item: "this item",
+        delete_tooltip: "Delete",
+        current_table_opt: "Current Table",
+        select_table_opt: "-- Select Table --",
+        formula_builder_placeholder: "Type or click above to build formula...",
+        table_name_label: "Table Name",
+        table_placeholder: "e.g. Customers",
+        workspace_placeholder: "Select or type new",
+        parent_link_label: "Parent Table (Optional Link)",
+        ready_to_save: "Ready to Save",
+        save_table_btn: "Save Table",
+        add_new_column_btn: "Add New Column",
+        save_current_btn: "Save to Current Version",
+        save_new_btn: "Save to New Version",
+        grid_editor_mode: "Grid Editor Mode",
+        currently_editing: "You are currently editing",
+        grid_editor_tip: "Make your changes directly in the spreadsheet.<br/>Tip: Go to View > New Window > Arrange All to edit this table side-by-side with your main data.<br/>Click Save when you are finished to sync the data.",
+        save_sync_btn: "Save & Sync Changes",
+        cancel_close_btn: "Cancel & Close",
+        input_title: "Input",
+        primary_id_column: "Primary ID Column (Must be unique)",
+        columns_drag_label: "Columns (Drag to reorder, uncheck to drop, click to rename)",
+        validation_passed: "Validation Passed",
+        records_count: "Records:",
+        id_column_name: "ID Column:",
+        final_columns: "Final Columns:",
+        next_validate_btn: "Next (Validate)",
+        back_mapping_btn: "Back to Mapping",
+        confirm_save_btn: "Confirm & Save",
+        link_col_fk: "Link Column (Foreign Key)",
+        select_link_col_1: "Select the column in this new table that links to records in",
+        yes_delete_btn: "Yes, Delete",
+        add_new_btn: "Add New"
     },
     ar: {
-        app_title: "متحكم البيانات",
+        app_title: "مدير البيانات",
         status_label: "الحالة:",
         default_table: "الجدول الافتراضي (للمعادلات)",
         revision: "النسخة",
         workspaces: "مساحات العمل",
         formula_builder: "منشئ المعادلات المرئي",
+        refresh_btn_title: "تحديث لوحة المعلومات والمعادلات",
+        convert_btn_title: "تحويل معادلات DC إلى قيم",
+        formula_builder_desc: "حدد دالة واملأ المعلمات. مراجع الخلايا (مثل <code>A1</code>) مدعومة.",
+        select_function: "تحديد الدالة",
         global_variables: "المتغيرات العامة",
+        global_variables_desc: "حدد متغيرات مستقلة باستخدام بيانات الجدول (مثل <code>DC.SUM('Table', 'Col')</code>).",
         add_variable: "إضافة متغير",
         backup_restore: "النسخ الاحتياطي والاستعادة",
+        backup_restore_desc: "تنزيل نسخة احتياطية من بياناتك أو استعادتها من ملف.",
         backup_data: "نسخ احتياطي",
         restore_data: "استعادة البيانات",
         theme_appearance: "المظهر",
@@ -75,7 +444,384 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         clear_btn: "مسح",
         status_ready: "جاهز",
         global_relations: "العلاقات العامة",
-        manage_relations: "إضافة / إدارة العلاقات"
+        global_relations_desc: "إدارة الروابط الهيكلية بين جداولك.",
+        manage_relations: "إضافة / إدارة العلاقات",
+        manage_workspaces: "إدارة مساحات العمل",
+        add_workspace: "إضافة مساحة عمل",
+        settings: "الإعدادات",
+        help_desc: "هل تحتاج إلى المساعدة أو تريد معرفة كيفية استخدام متحكم البيانات؟",
+        about_app_ver: "إصدار التطبيق:",
+        close_settings: "إغلاق الإعدادات",
+        tables_btn: "الجداول",
+        target_revision: "النسخة المستهدفة:",
+        insert_sheet: "إدراج في الورقة",
+        replace_version: "استبدال النسخة",
+        append_data: "إلحاق بيانات",
+        snapshot: "لقطة",
+        del_version: "حذف النسخة",
+        del_table: "حذف الجدول",
+        export_csv: "تصدير CSV",
+        headers_dropdown: "قائمة العناوين",
+        form_editor: "محرر النموذج",
+        grid_editor: "محرر الشبكة",
+        clone_record: "استنساخ السجل",
+        manage_columns: "إدارة الأعمدة",
+        move_workspace: "نقل مساحة العمل",
+        new_revision: "نسخة جديدة",
+        clone_sub_records: "استنساخ السجلات الفرعية",
+        data_entry_views: "إدخال البيانات والعروض",
+        schema_operations: "المخطط والعمليات",
+        versioning_danger_zone: "إدارة النسخ ومنطقة الخطر",
+        no_tables_in_ws: "لا توجد جداول في مساحة العمل هذه.",
+        no_tables: "لم يتم حفظ أي جداول بيانات بعد.",
+        no_workspaces: "لم يتم حفظ مساحات عمل أو جداول بيانات بعد.",
+        manage_ws_title: "إدارة مساحات العمل",
+        manage_ws_desc: "اسحب لإعادة الترتيب، أو حرر لإعادة التسمية. انقر على أيقونة سلة المهملات للحذف.",
+        manage_tb_title: "إدارة الجداول: {0}",
+        manage_tb_desc: "اسحب لإعادة الترتيب. انقر على أيقونة سلة المهملات للحذف. (إعادة التسمية معطلة)",
+        add_new_table: "إضافة جدول جديد",
+        del_table_title: "حذف الجدول بالكامل",
+        del_table_msg: "هل أنت متأكد أنك تريد حذف الجدول '{0}' وجميع نسخه نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.",
+        del_table_confirm: "نعم، احذف كل شيء",
+        del_version_title: "تأكيد الحذف",
+        del_version_latest_msg: "هل أنت متأكد أنك تريد حذف النسخة الحالية من '{0}' والعودة إلى النسخة السابقة؟",
+        del_version_hist_msg: "هل أنت متأكد أنك تريد حذف النسخة التاريخية {0} من '{1}'؟",
+        del_version_confirm: "نعم، احذف",
+        snapshot_locked_msg: "تم قفل النسخة {0}. النسخة الحالية الآن هي {1}",
+        snapshot_restored_msg: "تمت استعادة النسخة {0} كنسخة نشطة جديدة {1}.",
+        edit_cols_title: "تحرير الأعمدة",
+        edit_cols_msg: "اسحب لإعادة الترتيب، أضف أعمدة جديدة، أعد تسميتها، أو قم بإرفاق معادلات محسوبة.",
+        edit_record_title: "تعديل سجل",
+        edit_record_msg: "أدخل معرف السجل المراد تعديله في '{0}':",
+        edit_record_update_msg: "قم بتحديث القيم أدناه:",
+        edit_record_not_found: "لم يتم العثور على السجل '{0}'.",
+        export_csv_msg: "تم تصدير {0} (النسخة {1}) إلى CSV.",
+        insert_dropdown_msg: "تم إدراج قائمة عناوين لـ {0}",
+        insert_table_title: "إدراج جدول",
+        insert_table_msg: "حدد الأعمدة المراد إدراجها:",
+        insert_table_confirm: "إدراج",
+        insert_table_success: "تم إدراج الجدول لـ {0}",
+        split_editor_loading: "جاري تحميل محرر الانقسام...",
+        split_editor_fix_err: "يرجى إصلاح الأخطاء في المحرر الحالي قبل فتح محرر جديد.",
+        split_editor_success: "تم فتح محرر الانقسام لـ {0} و {1}. قم بترتيب النوافذ جنباً إلى جنب.",
+        grid_editor_opened_sub: "تم فتح الجدول الفرعي ({0}: {1})",
+        grid_editor_opened: "تم فتح '{0}'",
+        manage_rel_title: "إدارة العلاقات",
+        manage_rel_select_table: "حدد جدولاً لإدارة علاقاته:",
+        manage_rel_manage_msg: "إدارة علاقات '{0}':",
+        manage_rel_keep: "العلاقات الحالية (قم بإلغاء التحديد للإزالة)",
+        manage_rel_add_target: "إضافة جديد: الجدول المستهدف",
+        manage_rel_add_link: "إضافة جديد: عمود الربط",
+        manage_rel_none: "-- لا شيء --",
+        append_data_title: "إلحاق بيانات",
+        append_data_msg: "راجع البيانات المراد إلحاقها بـ '{0}' (تم اكتشاف {1} صفوف).",
+        clone_sub_title: "استنساخ السجلات الفرعية",
+        clone_sub_select_target: "حدد الجدول الفرعي المستهدف للاستنساخ:",
+        clone_sub_relation: "علاقة الجدول الفرعي",
+        clone_from: "استنساخ من '{0}'",
+        clone_select_ids: "حدد المعرف المصدر والمعرف(ات) الهدف:",
+        clone_source_id: "معرف السجل المصدر (نسخ من)",
+        clone_target_ids: "معرفات السجل الهدف (نسخ إلى)",
+        move_ws_title: "نقل مساحة العمل",
+        move_ws_msg: "حدد أو اكتب مساحة عمل جديدة لـ '{0}':",
+        add_var_title: "إضافة متغير",
+        add_var_msg: "قم بتعريف متغير عام:",
+        add_var_name: "اسم المتغير",
+        add_var_formula: "تعريف المعادلة",
+        add_ws_title: "إضافة مساحة عمل",
+        add_ws_msg: "أدخل اسماً لمساحة العمل الجديدة:",
+        add_ws_added_title: "تمت إضافة مساحة العمل",
+        add_ws_added_msg: "تم إنشاء مساحة العمل '{0}'. هل تريد التقاط جدول بيانات جديد لها الآن؟",
+        add_ws_capture_btn: "نعم، التقاط الجدول",
+        dup_record_title: "استنساخ سجل",
+        dup_record_msg: "حدد السجل المراد استنساخه وقدم معرفاً جديداً:",
+        dup_record_new_id: "معرف السجل الجديد",
+        delete_ws_title: "حذف مساحة العمل",
+        delete_ws_msg: "هل أنت متأكد أنك تريد حذف '{0}' نهائياً وجميع جداولها البالغ عددها {1}؟",
+        delete_tb_title: "حذف الجدول",
+        delete_tb_msg: "هل تريد حذف الجدول '{0}' نهائياً؟",
+        add_tb_title: "إضافة جدول",
+        add_tb_msg: "إنشاء جدول جديد في مساحة العمل '{0}'.",
+        add_tb_name: "اسم جدول البيانات",
+        add_tb_parent: "الجدول الأصل (رابط اختياري)",
+        capture_tb_title: "التقاط جدول جديد",
+        capture_tb_msg: "راجع وقم بتعيين الأعمدة لـ '{0}' (تم اكتشاف {1} صفوف).",
+        link_sub_title: "ربط جدول فرعي",
+        link_sub_msg: "أي عمود في '{0}' يرتبط بـ '{1}'؟",
+        link_col: "عمود الربط",
+        review_formulas_title: "مراجعة المعادلات المكتشفة",
+        review_formulas_msg: "قمنا بتحويل معادلات Excel الخاصة بك. قم بضبطها أدناه باستخدام منشئ المعادلات المرئي، أو امسح النص للتخطي:",
+        save_formulas: "حفظ المعادلات",
+        replace_ver_title: "استبدال النسخة",
+        replace_ver_msg: "راجع استبدال البيانات لـ '{0}' (تم اكتشاف {1} صفوف).",
+        capture_rev_title: "التقاط نسخة جديدة",
+        capture_rev_msg: "راجع بيانات النسخة الجديدة من '{0}' (تم اكتشاف {1} صفوف).",
+        mark_for_deletion: "تحديد للحذف",
+        mark_deletion_msg: "هل أنت متأكد أنك تريد حذف '{0}'؟ ستتم إزالته نهائياً عند حفظ التغييرات.",
+        delete_link_title: "حذف الرابط",
+        delete_link_msg: "هل أنت متأكد أنك تريد الإزالة النهائية للرابط بين '{0}' و '{1}'؟",
+        link_removed_success: "تمت إزالة الرابط بنجاح.",
+        add_rollup_title: "إضافة حقل تجميعي",
+        add_rollup_msg: "هل ترغب في إضافة حقل محسوب في '{0}' لتلخيص البيانات من '{1}'؟",
+        rollup_field_title: "حقل تجميعي",
+        rollup_field_msg: "قم بتعريف التجميع:",
+        rollup_field_name: "اسم الحقل الجديد (مثل التكلفة الإجمالية)",
+        rollup_type: "نوع التجميع",
+        rollup_col: "العمود المراد تجميعه (للـ SUM)",
+        no_relations: "لا توجد علاقات محددة بعد.",
+        rev_latest: "النسخة {0} (الأحدث)",
+        rev_history: "النسخة {0}",
+        rows: "صفوف",
+        "Data Table Name": "اسم جدول البيانات",
+        "Revision": "النسخة",
+        "Source Record ID": "معرف السجل المصدر",
+        formula_for: "معادلة لـ '{0}'",
+        define_calc_formula: "قم بتعريف المعادلة المحسوبة (اتركه فارغاً للإزالة):",
+        yes_btn: "نعم",
+        funcs_label: "الدوال:",
+        vars_label: "المتغيرات:",
+        tables_label: "الجداول:",
+        fields_label: "الحقول:",
+        main_data_table: "جدول البيانات الأساسي",
+        next_btn: "التالي",
+        cancel_btn: "إلغاء",
+        save_changes_btn: "حفظ التغييرات",
+        add_column_btn: "إضافة عمود",
+        delete_selected_btn: "حذف المحدد",
+        save_current_rev_btn: "حفظ في النسخة الحالية",
+        save_new_rev_btn: "حفظ كنسخة جديدة",
+        back_btn: "رجوع",
+        optional_label: "(اختياري)",
+        wizard_step_indicator: "الخطوة {0} / {1}",
+        ok_btn: "موافق",
+        edit_record_title_with_id: "تعديل السجل: {0}",
+        columns_label: "الأعمدة",
+        workspace_label: "مساحة العمل",
+        source_record_id_label: "معرف السجل المصدر",
+        manage_btn: "إدارة",
+        refresh_btn: "تحديث",
+        editor_mode_desc: "قم بإجراء تغييراتك مباشرة في ورقة العمل. تلميح: انتقل إلى عرض > نافذة جديدة > ترتيب الكل لتعديل هذا الجدول جنباً إلى جنب مع بياناتك الأساسية. انقر فوق حفظ عند الانتهاء لمزامنة البيانات.",
+        live_sync_active: "<i class=\"ms-Icon ms-Icon--SyncOccurence\"></i> المزامنة المباشرة نشطة",
+        editing_title: "أنت تقوم حالياً بتعديل الجدول ",
+        error_general: "خطأ: ",
+        no_data_table_specified: "خطأ: لم يتم تحديد جدول بيانات.",
+        no_data_captured: "خطأ: لم يتم التقاط بيانات.",
+        data_table_not_found: "خطأ: لم يتم العثور على جدول البيانات.",
+        revision_not_found: "خطأ: لم يتم العثور على النسخة.",
+        db_error_prefix: "خطأ في قاعدة البيانات: ",
+        variable_not_found: "خطأ: المتغير غير موجود",
+        circular_reference_detected: "تم اكتشاف مرجع دائري",
+        data_service_error_prefix: "خطأ: ",
+        no_data_to_backup: "لا توجد بيانات للنسخ الاحتياطي.",
+        no_file_selected: "لم يتم تحديد ملف.",
+        invalid_backup_file_format: "تنسيق ملف النسخ الاحتياطي غير صالح.",
+        error_reading_file: "خطأ في قراءة الملف.",
+        not_found: "غير موجود",
+        field_error: "خطأ في الحقل",
+        func_error_prefix: "خطأ في الدالة: ",
+        base_table_error_prefix: "خطأ في الجدول الأساسي: ",
+        foreign_table_error_prefix: "خطأ في الجدول الأجنبي: ",
+        na_value: "غير متوفر",
+        sort_field_not_found: "حقل الفرز '{0}' غير موجود",
+        select_option: "اختر...",
+        true_text: "صحيح",
+        false_text: "خطأ",
+        field_is_required: "'{0}' مطلوب.",
+        inserted_formula: "تم إدراج المعادلة: {0}",
+        column_generic: "عمود {0}",
+        name_placeholder: "الاسم",
+        id_badge: "(معرف)",
+        cannot_delete_id_column_msg: "لا يمكن حذف عمود المعرف الأساسي ('{0}').",
+        table_name_required_error: "اسم الجدول مطلوب.",
+        table_already_exists_error: "الجدول '{0}' موجود بالفعل.",
+        workspace_name_required_error: "اسم مساحة العمل مطلوب.",
+        primary_id_column_missing_error: "عمود المعرف الأساسي مفقود.",
+        row_has_empty_id_error: "الصف {0} يحتوي على معرف فارغ.",
+        duplicate_id_found_error: "تم العثور على معرف مكرر: '{0}'.",
+        all_column_names_must_be_unique_error: "يجب أن تكون جميع أسماء الأعمدة فريدة.",
+        link_column_required_error: "عمود الربط مطلوب.",
+        select_range_for_table_creation: "حدد نطاقاً يحتوي على عناوين وبيانات لإنشاء جدول.",
+        public_workspace: "عام",
+        saved_records_in_table: "تم حفظ {0} سجل في {1}.",
+        formula_detected_label: "{0} (تم اكتشافه: {1})",
+        mapped_formulas_for: "تم تعيين المعادلات لـ: {0}",
+        select_range_with_headers_and_data: "حدد نطاقاً يحتوي على عناوين وبيانات.",
+        data_table_not_found_error: "لم يتم العثور على جدول البيانات '{0}'.",
+        replaced_table_with_records: "تم استبدال '{0}' بـ {1} سجل جديد. (المعرف: '{2}')",
+        replaced_rev_of_table_with_records: "تم استبدال النسخة {0} من '{1}' بـ {2} سجل.",
+        error_replacing_data: "خطأ في استبدال البيانات: ",
+        captured_rev_for_table: "تم التقاط النسخة {0} لـ '{1}' مع {2} سجل.",
+        error_capturing_new_revision: "خطأ في التقاط نسخة جديدة: ",
+        no_data_tables_stored_yet: "لم يتم حفظ أي جداول بيانات بعد.",
+        no_workspaces_or_tables_stored_yet: "لم يتم حفظ مساحات عمل أو جداول بيانات بعد.",
+        rev_latest_history: "النسخة {0}{1}",
+        rev_latest_suffix: " (الأحدث)",
+        link_column: "عمود الربط",
+        open_split_editor_btn: "فتح المحرر المنقسم",
+        delete_link_btn: "حذف الرابط",
+        rev_count_rows: "النسخة {0} • {1} صفوف",
+        revision_latest_history: "النسخة {0}{1}",
+        restore_snapshot: "استعادة",
+        no_tables_in_this_workspace: "لا توجد جداول في مساحة العمل هذه.",
+        deleted_entire_data_table: "تم حذف جدول البيانات بالكامل: {0}",
+        deleted_current_version_rolled_back: "تم حذف النسخة الحالية. تم التراجع إلى النسخة {0}.",
+        deleted_only_version_table_removed: "تم حذف النسخة الوحيدة. تمت إزالة الجدول '{0}'.",
+        deleted_historical_rev: "تم حذف النسخة التاريخية {0} من '{1}'.",
+        error_deleting_version: "خطأ في حذف النسخة: ",
+        locked_rev_current_is: "تم قفل النسخة {0}. النسخة الحالية الآن هي {1}",
+        restored_rev_as_new_active: "تمت استعادة النسخة {0} كنسخة نشطة جديدة {1}.",
+        storage_limit_reached: "تم الوصول إلى حد التخزين! يرجى إخلاء بعض المساحة.",
+        error_creating_snapshot: "خطأ في إنشاء لقطة: ",
+        cannot_resort_historical_revision: "لا يمكن إعادة ترتيب أعمدة لنسخة تاريخية.",
+        column_names_must_be_unique: "يجب أن تكون أسماء الأعمدة فريدة.",
+        columns_updated_successfully: "تم تحديث الأعمدة بنجاح. النسخة الحالية هي {0}.",
+        enter_record_id_to_edit: "أدخل معرف السجل المراد تعديله في '{0}':",
+        record_not_found_error: "السجل '{0}' غير موجود.",
+        calculated_label: " (محسوب)",
+        record_updated_refreshing_excel: "تم تحديث السجل. جاري تحديث Excel...",
+        storage_limit_reached_cannot_save: "تم الوصول إلى حد التخزين! لا يمكن حفظ التغييرات.",
+        error_saving_changes: "خطأ في حفظ التغييرات: ",
+        no_data_found_error: "لم يتم العثور على بيانات.",
+        no_data_found_for_revision_error: "لم يتم العثور على بيانات لهذه النسخة.",
+        exported_table_to_csv: "تم تصدير {0} (النسخة {1}) إلى CSV.",
+        error_exporting_csv: "خطأ في تصدير CSV: ",
+        refreshing_dashboard_formulas: "جاري تحديث لوحة المعلومات والمعادلات... يرجى الانتظار.",
+        refreshed_dashboard_formulas: "تم تحديث لوحة المعلومات و {0} من معادلات DC.",
+        converting_please_wait: "جاري التحويل... يرجى الانتظار.",
+        converted_formulas_to_values: "تم تحويل {0} معادلة إلى قيم.",
+        backup_downloaded_successfully: "تم تنزيل النسخة الاحتياطية بنجاح.",
+        backup_error: "خطأ في النسخ الاحتياطي: ",
+        data_restored_successfully: "تمت استعادة البيانات بنجاح.",
+        restore_error: "خطأ في الاستعادة: ",
+        no_headers_found_error: "لم يتم العثور على عناوين.",
+        inserted_headers_dropdown: "تم إدراج قائمة عناوين لـ {0}",
+        error_inserting_dropdown: "خطأ في إدراج القائمة المنسدلة: ",
+        no_data_found_for_table_error: "لم يتم العثور على بيانات لجدول البيانات هذا.",
+        select_columns_to_insert: "حدد الأعمدة لإدراجها:",
+        excel_formula_js_syntax_error: "تحتوي المعادلات على صيغة غير صالحة وتم إدراجها كنص.",
+        inserted_table_for: "تم إدراج جدول لـ {0}",
+        error_inserting_table: "خطأ في إدراج الجدول: ",
+        unknown_table_name: "غير معروف",
+        loading_split_editor: "جاري تحميل محرر الانقسام...",
+        fix_errors_before_new_editor: "يرجى إصلاح الأخطاء في المحرر الحالي قبل فتح محرر جديد.",
+        new_record_id_placeholder: "جديد",
+        opened_split_editor_arrange_windows: "تم فتح محرر الانقسام لـ {0} و {1}. قم بترتيب النوافذ جنباً إلى جنب.",
+        error_opening_split_editor: "خطأ في فتح محرر الانقسام: ",
+        opened_sub_table_in_editor: "تم فتح الجدول الفرعي ({0}: {1})",
+        opened_table_in_grid_editor: "تم فتح '{0}' في محرر الشبكة.",
+        error_opening_grid_editor: "خطأ في فتح محرر الشبكة: ",
+        row_has_empty_id_in_table_error: "الصف {0} يحتوي على معرف فارغ في {1}.",
+        duplicate_id_found_in_table_error: "تم العثور على معرف مكرر: '{0}' في {1}.",
+        saved_records: "تم حفظ {0} سجل.",
+        no_changes_detected: "لم يتم اكتشاف تغييرات.",
+        error_saving_grid_editor: "خطأ في حفظ محرر الشبكة: ",
+        auto_syncing_switching_to_record: "مزامنة تلقائية... جاري التبديل إلى السجل {0}",
+        switched_sub_table_to_record: "تم التبديل في الجدول الفرعي إلى السجل {0}",
+        error_switching_record: "خطأ في تبديل السجل: ",
+        error_canceling_grid_editor: "خطأ في إلغاء محرر الشبكة: ",
+        relation_link_suffix: "{0} (رابط: {1})",
+        relations_updated_for: "تم تحديث العلاقات لـ '{0}'",
+        define_the_rollup: "حدد التجميع:",
+        added_rollup_field: "تمت إضافة حقل التجميع '{0}'",
+        error_managing_relations: "خطأ في إدارة العلاقات: ",
+        cannot_append_to_historical_revision: "لا يمكن إلحاق بيانات بنسخة تاريخية.",
+        review_data_to_append: "راجع البيانات المراد إلحاقها بـ '{0}' (تم اكتشاف {1} صفوف).",
+        duplicate_id_already_exists_error: "تم العثور على معرف مكرر: '{0}' موجود بالفعل في '{1}'.",
+        appended_records_current_is: "تم إلحاق {0} سجل. النسخة الحالية هي {1}.",
+        error_appending_data: "خطأ في إلحاق البيانات: ",
+        no_relations_defined_for_table: "لا توجد علاقات محددة لهذا الجدول.",
+        relation_fk_suffix: "{0} (مفتاح أجنبي: {1})",
+        select_target_sub_table_to_clone: "حدد الجدول الفرعي المستهدف للاستنساخ:",
+        clone_from_table: "استنساخ من '{0}'",
+        select_source_target_ids: "حدد المعرف المصدر والمعرف(ات) الهدف:",
+        no_sub_records_found: "لم يتم العثور على سجلات فرعية للمعرف المصدر '{0}'.",
+        cloned_id_prefix: "نسخة_",
+        successfully_cloned_sub_records: "تم بنجاح استنساخ {0} سجل فرعي إلى {1} هدف.",
+        error_cloning_sub_records: "خطأ في استنساخ السجلات الفرعية: ",
+        select_or_type_new_workspace: "حدد أو اكتب مساحة عمل جديدة لـ '{0}':",
+        moved_table_to_workspace: "تم نقل '{0}' إلى '{1}'.",
+        error_moving_table: "خطأ في نقل الجدول: ",
+        variable_name_required: "اسم المتغير مطلوب.",
+        formula_required: "المعادلة مطلوبة.",
+        loop_detected: "تم اكتشاف حلقة",
+        variable_cannot_reference_itself: "لا يمكن للمتغير الإشارة إلى نفسه",
+        variable_saved: "تم حفظ المتغير '{0}'.",
+        invalid_formula_for_variable: "معادلة غير صالحة لـ '{0}': {1}",
+        error_adding_workspace: "خطأ في إضافة مساحة عمل: ",
+        error_text: "خطأ",
+        loop_error: "خطأ حلقة",
+        insert_to_sheet: "إدراج في الورقة",
+        inserted_variable_to_sheet: "تم إدراج المتغير '{0}' في الورقة.",
+        error_inserting_variable: "خطأ في إدراج المتغير: ",
+        delete_variable: "حذف المتغير",
+        record_id_already_exists: "معرف السجل '{0}' موجود بالفعل في '{1}'.",
+        source_record_not_found: "لم يتم العثور على السجل المصدر '{0}'.",
+        successfully_duplicated_record: "تم بنجاح استنساخ السجل '{0}' إلى '{1}' مع {2} سجل فرعي.",
+        error_duplicating_record: "خطأ في استنساخ السجل: ",
+        param_record_id: "معرف السجل",
+        param_field_name: "اسم الحقل",
+        param_data_table_name: "اسم جدول البيانات",
+        param_revision: "النسخة",
+        param_search_field: "حقل البحث",
+        param_search_value: "قيمة البحث",
+        param_return_field: "حقل الإرجاع",
+        param_exact_match: "تطابق تام (TRUE/FALSE)",
+        param_sum_field: "حقل الجمع",
+        param_criteria_field: "حقل المعيار",
+        param_criteria_value: "قيمة المعيار",
+        param_base_table_name: "اسم الجدول الأساسي",
+        param_link_column: "عمود الربط",
+        param_target_table_name: "اسم الجدول المستهدف",
+        param_target_return_field: "حقل الإرجاع المستهدف",
+        param_sort_field: "حقل الفرز",
+        param_ascending: "تصاعدي (TRUE/FALSE)",
+        param_variable_name: "اسم المتغير",
+        save_btn: "حفظ",
+        loading_text: "جاري التحميل...",
+        col_name_placeholder: "اسم العمود",
+        new_col_name_placeholder: "اسم العمود الجديد",
+        new_column_default: "عمود جديد",
+        formula_def_label: "تعريف المعادلة",
+        edit_formula_tooltip: "تعديل المعادلة: {0}",
+        add_formula_tooltip: "إضافة معادلة",
+        cannot_delete_id_col_tooltip: "لا يمكن حذف عمود المعرف",
+        primary_id_col_tooltip: "عمود المعرف الأساسي",
+        id_col_must_be_present: "يجب أن يكون عمود المعرف الأساسي موجوداً في الجدول.",
+        row_empty_id_strict: "الصف {0} يحتوي على معرف فارغ. يجب ألا تكون المعرفات فارغة.",
+        duplicate_id_strict: "تم العثور على معرف مكرر: '{0}'. يجب أن تكون جميع المعرفات فريدة.",
+        this_item: "هذا العنصر",
+        delete_tooltip: "حذف",
+        current_table_opt: "الجدول الحالي",
+        select_table_opt: "-- حدد الجدول --",
+        formula_builder_placeholder: "اكتب أو انقر أعلاه لبناء المعادلة...",
+        table_name_label: "اسم الجدول",
+        table_placeholder: "مثل: العملاء",
+        workspace_placeholder: "حدد أو اكتب جديداً",
+        parent_link_label: "الجدول الأصل (رابط اختياري)",
+        ready_to_save: "جاهز للحفظ",
+        save_table_btn: "حفظ الجدول",
+        add_new_column_btn: "إضافة عمود جديد",
+        save_current_btn: "حفظ في النسخة الحالية",
+        save_new_btn: "حفظ كنسخة جديدة",
+        grid_editor_mode: "وضع محرر الشبكة",
+        currently_editing: "أنت تقوم حالياً بتعديل",
+        grid_editor_tip: "قم بإجراء تغييراتك مباشرة في ورقة العمل.<br/>تلميح: انتقل إلى عرض > نافذة جديدة > ترتيب الكل لتعديل هذا الجدول جنباً إلى جنب مع بياناتك الأساسية.<br/>انقر فوق حفظ عند الانتهاء لمزامنة البيانات.",
+        save_sync_btn: "حفظ ومزامنة التغييرات",
+        cancel_close_btn: "إلغاء وإغلاق",
+        input_title: "إدخال",
+        primary_id_column: "عمود المعرف الأساسي (يجب أن يكون فريداً)",
+        columns_drag_label: "الأعمدة (اسحب لإعادة الترتيب، قم بإلغاء التحديد للحذف، انقر لإعادة التسمية)",
+        validation_passed: "تم اجتياز التحقق",
+        records_count: "السجلات:",
+        id_column_name: "عمود المعرف:",
+        final_columns: "الأعمدة النهائية:",
+        next_validate_btn: "التالي (تحقق)",
+        back_mapping_btn: "العودة إلى التعيين",
+        confirm_save_btn: "تأكيد وحفظ",
+        link_col_fk: "عمود الربط (مفتاح أجنبي)",
+        select_link_col_1: "حدد العمود في هذا الجدول الجديد الذي يرتبط بالسجلات في",
+        yes_delete_btn: "نعم، احذف",
+        add_new_btn: "إضافة جديد"
     }
 };
 
@@ -133,6 +879,7 @@ function scrollToTarget(element: HTMLElement) {
 }
 
 function toggleAccordion(header: HTMLElement, content: HTMLElement, levelClass: string) {
+    console.log(`[Debug] Accordion clicked. ID/Text: ${header.id || header.innerText} | Level: ${levelClass}`);
     const isActive = header.classList.contains("active");
     
     if (!isActive) {
@@ -165,18 +912,50 @@ function toggleAccordion(header: HTMLElement, content: HTMLElement, levelClass: 
     }
 }
 
-export function t(key: string): string {
-    return TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS["en"][key] || key;
+export function t(key: string, ...args: (string | number)[]): string {
+    let str = TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS["en"][key] || key;
+    args.forEach((arg, i) => {
+        str = str.replace(new RegExp(`\\{${i}\\}`, 'g'), String(arg));
+    });
+    return str;
 }
 
 export function applyTranslations() {
-    document.body.dir = currentLang === "ar" ? "rtl" : "ltr";
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        if (key && TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) {
-            (el as HTMLElement).innerText = TRANSLATIONS[currentLang][key];
+    try {
+        document.body.dir = currentLang === "ar" ? "rtl" : "ltr";
+        
+        // Safely replace text without destroying child elements (like spans or icons)
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+            const key = el.getAttribute("data-i18n");
+            if (key && TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) {
+                const translatedText = t(key);
+                (el as HTMLElement).innerHTML = translatedText;
+            }
+        });
+
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (key) {
+                (el as HTMLInputElement).placeholder = t(key);
+            }
+        });
+        
+        document.querySelectorAll("[data-i18n-title]").forEach(el => {
+            const key = el.getAttribute("data-i18n-title");
+            if (key) {
+                (el as HTMLElement).title = t(key);
+            }
+        });
+
+        const statusText = document.getElementById("status-text");
+        if (statusText) {
+            if (statusText.innerText.trim() === "Ready" || statusText.innerText.trim() === "جاهز" || statusText.innerText.trim() === "") {
+                statusText.innerText = t("status_ready");
+            }
         }
-    });
+    } catch (e) {
+        console.error("Translation apply error:", e);
+    }
 }
 
 export function showStatus(message: string, type: "success" | "error" | "info" = "info") {
@@ -188,17 +967,59 @@ export function showStatus(message: string, type: "success" | "error" | "info" =
     else status.style.color = "blue";
 }
 
+// Catch unhandled synchronous exceptions
+window.onerror = (message, source, lineno, colno, error) => {
+    console.error("[Global Error]", message, error);
+    showStatus(t("error_general") + (error?.message || message), "error");
+};
+
+// Catch unhandled asynchronous promise rejections
+window.addEventListener("unhandledrejection", (event) => {
+    console.error("[Unhandled Rejection]", event.reason);
+    showStatus(t("error_general") + (event.reason?.message || event.reason || "Unhandled Promise Rejection"), "error");
+});
+
+let globalEventsBound = false; // Prevents double-binding global document handlers
+
 Office.onReady(async (info) => {
-  if (info.host === Office.HostType.Excel) {
-    document.getElementById("backup-button").onclick = backupData;
-    document.getElementById("restore-button").onclick = triggerRestore;
-    document.getElementById("restore-file-input").addEventListener("change", restoreData);
-    document.getElementById("refresh-formulas-button").onclick = () => refreshFormulas(false);
-    document.getElementById("convert-values-button").onclick = convertToValues;
-    document.getElementById("settings-button").onclick = toggleSettings;
+  console.log(`[Debug] Office.onReady fired. Host: ${info.host}`);
+  // Allow UI bindings to execute in standard web browsers for UI testing, as well as inside Excel
+  if (info.host === Office.HostType.Excel || !info.host) {
+    // Safe event bindings: Using .onclick prevents double-firing if Office.onReady runs multiple times
+    const backupBtn = document.getElementById("backup-button");
+    if (backupBtn) backupBtn.onclick = backupData;
+
+    const restoreBtn = document.getElementById("restore-button");
+    if (restoreBtn) restoreBtn.onclick = triggerRestore;
+
+    const restoreFileInput = document.getElementById("restore-file-input");
+    if (restoreFileInput) restoreFileInput.onchange = restoreData;
+
+    const refreshBtn = document.getElementById("refresh-formulas-button");
+    if (refreshBtn) refreshBtn.onclick = () => refreshFormulas(false);
+
+    const convertBtn = document.getElementById("convert-values-button");
+    if (convertBtn) convertBtn.onclick = convertToValues;
+
+    const settingsBtn = document.getElementById("settings-button");
+    if (settingsBtn) settingsBtn.onclick = toggleSettings;
+    
     const manageWsBtn = document.getElementById("manage-workspaces-btn");
     if (manageWsBtn) manageWsBtn.onclick = manageWorkspaces;
 
+    const addWsBtnGlobal = document.getElementById("add-workspace-btn-global");
+    if (addWsBtnGlobal) addWsBtnGlobal.onclick = addWorkspace;
+
+    const addTbBtnGlobal = document.getElementById("add-table-btn-global");
+    if (addTbBtnGlobal) addTbBtnGlobal.onclick = addTableGlobal;
+    
+    const closeSettingsBtn = document.getElementById("close-settings-btn");
+    if (closeSettingsBtn) closeSettingsBtn.onclick = toggleSettings;
+
+    const helpBtn = document.getElementById("help-button") || document.getElementById("help-btn") || document.querySelector('[data-i18n="help_btn"]');
+    if (helpBtn) {
+        (helpBtn as HTMLElement).onclick = () => window.open("https://github.com/m-Azem/data-controller-addin", "_blank");
+    }
     
     const editorSaveBtn = document.getElementById("editor-save-btn");
     if (editorSaveBtn) editorSaveBtn.onclick = () => saveGridEditor(true);
@@ -210,9 +1031,9 @@ Office.onReady(async (info) => {
     const formulaContent = document.getElementById("formula-builder-content");
     if (formulaAccordion && formulaContent) {
       formulaAccordion.classList.add("accordion-top-level");
-      formulaAccordion.addEventListener("click", () => {
+      formulaAccordion.onclick = () => {
         toggleAccordion(formulaAccordion, formulaContent, "accordion-top-level");
-      });
+      };
     }
 
     // Setup Global Variables Accordion
@@ -220,9 +1041,9 @@ Office.onReady(async (info) => {
     const varContent = document.getElementById("variables-content");
     if (varAccordion && varContent) {
       varAccordion.classList.add("accordion-top-level");
-      varAccordion.addEventListener("click", () => {
+      varAccordion.onclick = () => {
         toggleAccordion(varAccordion, varContent, "accordion-top-level");
-      });
+      };
     }
     const addVarBtn = document.getElementById("add-variable-btn");
     if (addVarBtn) addVarBtn.onclick = manageVariable;
@@ -232,9 +1053,9 @@ Office.onReady(async (info) => {
     const relContent = document.getElementById("relations-content");
     if (relAccordion && relContent) {
       relAccordion.classList.add("accordion-top-level");
-      relAccordion.addEventListener("click", () => {
+      relAccordion.onclick = () => {
         toggleAccordion(relAccordion, relContent, "accordion-top-level");
-      });
+      };
     }
     const manageRelBtn = document.getElementById("manage-global-relations-btn");
     if (manageRelBtn) manageRelBtn.onclick = async () => {
@@ -242,155 +1063,192 @@ Office.onReady(async (info) => {
         if (!storedData) return;
         const store = JSON.parse(storedData);
         const tables = Object.keys(store);
-        const res = await customFormPrompt("Manage Relations", "Select a table to manage its relations:", [{ id: "table", label: "Main Data Table", type: "select", options: tables }], "Next");
+        const res = await customFormPrompt(t("manage_rel_title"), t("manage_rel_select_table"), [{ id: "table", label: t("main_data_table"), type: "select", options: tables }], t("next_btn"));
         if (res && res.table) manageRelations(res.table);
     };
 
-    document.getElementById("formula-select")?.addEventListener("change", renderFormulaBuilder);
-    document.getElementById("formula-select")?.addEventListener("focus", () => { activeFormulaInput = null; });
-    document.getElementById("formula-select")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
-    document.getElementById("insert-built-formula-button").onclick = insertBuiltFormula;
-    document.getElementById("insert-built-formula-button")?.addEventListener("focus", () => { activeFormulaInput = null; });
-    document.getElementById("insert-built-formula-button")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
+const fSelect = document.getElementById("formula-select");
+    if (fSelect) {
+        fSelect.onchange = renderFormulaBuilder;
+        fSelect.onfocus = () => { activeFormulaInput = null; };
+        fSelect.onmousedown = () => { activeFormulaInput = null; };
+    }
 
-    document.getElementById("clear-formula-button")?.addEventListener("click", clearFormulaForm);
-    document.getElementById("clear-formula-button")?.addEventListener("focus", () => { activeFormulaInput = null; });
-    document.getElementById("clear-formula-button")?.addEventListener("mousedown", () => { activeFormulaInput = null; });
+    const insertFormulaBtn = document.getElementById("insert-built-formula-button");
+    if (insertFormulaBtn) {
+        insertFormulaBtn.onclick = insertBuiltFormula;
+        insertFormulaBtn.onfocus = () => { activeFormulaInput = null; };
+        insertFormulaBtn.onmousedown = () => { activeFormulaInput = null; };
+    }
+
+    const clearFormulaBtn = document.getElementById("clear-formula-button");
+    if (clearFormulaBtn) {
+        clearFormulaBtn.onclick = clearFormulaForm;
+        clearFormulaBtn.onfocus = () => { activeFormulaInput = null; };
+        clearFormulaBtn.onmousedown = () => { activeFormulaInput = null; };
+    }
 
     // Setup Theme Toggle
     const themeToggle = document.getElementById("theme-toggle");
-    if (themeToggle) themeToggle.addEventListener("change", toggleTheme);
+    if (themeToggle) themeToggle.onchange = toggleTheme;
 
     // Display App Version
     const versionDisplay = document.getElementById("app-version-display");
     if (versionDisplay) versionDisplay.innerText = APP_VERSION;
 
-    // Handle automatic cell reference insertion for Formula Builder
-    Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, async () => {
-        const formulaContent = document.getElementById("formula-builder-content");
-        const isVisible = formulaContent && formulaContent.classList.contains("show");
-        if (isVisible && activeFormulaInput && document.body.contains(activeFormulaInput)) {
-            try {
-                await Excel.run(async (context) => {
-                    const range = context.workbook.getSelectedRange();
-                    range.load("address");
-                    await context.sync();
-                    let address = range.address;
-                    if (address.includes("!")) address = address.split("!")[1];
-                    if (address.includes(":")) address = address.split(":")[0];
-                    activeFormulaInput.value = address.replace(/\$/g, "");
-                });
-            } catch (e) {
-                // Silently ignore errors, e.g., when selection is not a range.
-            }
-        }
+    const langSelect = document.getElementById("language-select") as HTMLSelectElement;
+    if (langSelect) {
+        langSelect.onchange = async (e) => {
+            currentLang = (e.target as HTMLSelectElement).value;
+            await idbSet(IDB_KEYS.LANGUAGE, currentLang);
+            applyTranslations();
+            renderDashboard(); // Re-render dynamic text on change
+        };
+    }
 
-        // Live Sub-table Tracking (Auto-Switching)
-        try {
-            await Excel.run(async (context) => {
-                const worksheets = context.workbook.worksheets;
-                worksheets.load("items/name");
-                await context.sync();
-                
-                let subEditorSheet: Excel.Worksheet | null = null;
-                for (const sheet of worksheets.items) {
-                    const pProp = sheet.customProperties.getItemOrNullObject("SheetPurpose");
-                    pProp.load("value");
-                    await context.sync();
-                    if (!pProp.isNullObject && pProp.value === "SubDataEditor") {
-                        subEditorSheet = sheet;
-                        break;
+   // Only bind global document listeners once
+    if (!globalEventsBound) {
+        // Close Settings with Escape
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                const settingsView = document.getElementById('settings-view');
+                if (settingsView && settingsView.style.display === 'block') {
+                    const isModalOpen = Array.from(document.querySelectorAll('.modal-overlay')).some(m => (m as HTMLElement).style.display === 'flex');
+                    if (!isModalOpen) {
+                        toggleSettings();
                     }
                 }
-                if (!subEditorSheet) return;
+            }
+        });
 
-                const activeSheet = context.workbook.worksheets.getActiveWorksheet();
-                activeSheet.load("name");
-                await context.sync();
-                if (activeSheet.name === subEditorSheet.name) return;
+        // Handle automatic cell reference insertion for Formula Builder
+        Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, async () => {
+            const formulaContent = document.getElementById("formula-builder-content");
+            const isVisible = formulaContent && formulaContent.classList.contains("show");
+            if (isVisible && activeFormulaInput && document.body.contains(activeFormulaInput)) {
+                try {
+                    await Excel.run(async (context) => {
+                        const range = context.workbook.getSelectedRange();
+                        range.load("address");
+                        await context.sync();
+                        let address = range.address;
+                        if (address.includes("!")) address = address.split("!")[1];
+                        if (address.includes(":")) address = address.split(":")[0];
+                        activeFormulaInput.value = address.replace(/\$/g, "");
+                        activeFormulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        activeFormulaInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                } catch (e) {}
+            }
 
-                const editorTableProp = subEditorSheet.customProperties.getItemOrNullObject("EditingTable");
-                const currentFilterValueProp = subEditorSheet.customProperties.getItemOrNullObject("FilterValue");
-                const editorColsProp = subEditorSheet.customProperties.getItemOrNullObject("EditorColumns");
-                const mainTableProp = subEditorSheet.customProperties.getItemOrNullObject("MainTable");
-                editorTableProp.load("value");
-                currentFilterValueProp.load("value");
-                editorColsProp.load("value");
-                mainTableProp.load("value");
-                await context.sync();
-                if (editorTableProp.isNullObject || editorTableProp.value === "") return;
-                const editorTargetTable = editorTableProp.value;
-                const mainTableValue = !mainTableProp.isNullObject ? mainTableProp.value : "";
-
-                const range = context.workbook.getSelectedRange();
-                const tables = range.getTables();
-                tables.load("items/name");
-                await context.sync();
-                if (tables.items.length === 0) return;
-
-                const selectedTable = tables.items[0];
-                const storedData = await idbGet(IDB_KEYS.STORE);
-                if (!storedData) return;
-                const store = JSON.parse(storedData);
-                let matchedMainTable = mainTableValue;
-                if (!matchedMainTable) {
-                    for (const key of Object.keys(store)) {
-                        if (selectedTable.name.includes(key.replace(/\s+/g, ""))) {
-                            matchedMainTable = key;
+            // Live Sub-table Tracking (Auto-Switching)
+            try {
+                await Excel.run(async (context) => {
+                    const worksheets = context.workbook.worksheets;
+                    worksheets.load("items/name");
+                    await context.sync();
+                    
+                    let subEditorSheet: Excel.Worksheet | null = null;
+                    for (const sheet of worksheets.items) {
+                        const pProp = sheet.customProperties.getItemOrNullObject("SheetPurpose");
+                        pProp.load("value");
+                        await context.sync();
+                        if (!pProp.isNullObject && pProp.value === "SubDataEditor") {
+                            subEditorSheet = sheet;
                             break;
                         }
                     }
-                }
-                if (!matchedMainTable) return;
-                
-                const mainDataSet = store[matchedMainTable];
-                const relation = (mainDataSet.relations || []).find((r: any) => r.subTable === editorTargetTable);
-                // If there is no relation, or if the selected table is not the main table for the active sub-editor, do nothing.
-                if (!relation || matchedMainTable !== mainTableValue) return;
+                    if (!subEditorSheet) return;
 
-                const idField = mainDataSet.idField || mainDataSet.fields[0];
-                const idColumn = selectedTable.columns.getItemOrNullObject(idField);
-                const tableRange = selectedTable.getRange();
-                idColumn.load("index");
-                range.load("rowIndex");
-                tableRange.load("rowIndex");
-                await context.sync();
-                if (idColumn.isNullObject) return;
+                    const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                    activeSheet.load("name");
+                    await context.sync();
+                    if (activeSheet.name === subEditorSheet.name) return;
 
-                const rowIdxInTable = range.rowIndex - tableRange.rowIndex;
-                if (rowIdxInTable <= 0) return;
+                    const editorTableProp = subEditorSheet.customProperties.getItemOrNullObject("EditingTable");
+                    const currentFilterValueProp = subEditorSheet.customProperties.getItemOrNullObject("FilterValue");
+                    const editorColsProp = subEditorSheet.customProperties.getItemOrNullObject("EditorColumns");
+                    const mainTableProp = subEditorSheet.customProperties.getItemOrNullObject("MainTable");
+                    editorTableProp.load("value");
+                    currentFilterValueProp.load("value");
+                    editorColsProp.load("value");
+                    mainTableProp.load("value");
+                    await context.sync();
+                    if (editorTableProp.isNullObject || editorTableProp.value === "") return;
+                    const editorTargetTable = editorTableProp.value;
+                    const mainTableValue = !mainTableProp.isNullObject ? mainTableProp.value : "";
 
-                const cell = selectedTable.getDataBodyRange().getCell(rowIdxInTable - 1, idColumn.index);
-                cell.load("values");
-                await context.sync();
+                    const range = context.workbook.getSelectedRange();
+                    const tables = range.getTables();
+                    tables.load("items/name");
+                    await context.sync();
+                    if (tables.items.length === 0) return;
 
-                const newId = String(cell.values[0][0]);
-                const currentId = currentFilterValueProp.isNullObject ? "" : currentFilterValueProp.value;
-
-                console.log(`[Live Sync] Checking switch: newId=${newId}, currentId=${currentId}`);
-                if (newId && newId !== currentId && newId.trim() !== "") {
-                    if (isSwitchingRecord) return;
-                    isSwitchingRecord = true;
-                    const editorCols = (editorColsProp.value || "").split(",").filter(c => c);
-                    setTimeout(async () => {
-                        try {
-                            console.log(`[Live Sync] Executing switch to ${newId}`);
-                            await switchGridEditorRecord(newId, relation.foreignKey, editorTargetTable, editorCols, subEditorSheet!.name, matchedMainTable);
-                        } catch (err) {
-                            console.error("[Live Sync] Switch error:", err);
-                        } finally {
-                            isSwitchingRecord = false;
+                    const selectedTable = tables.items[0];
+                    const storedData = await idbGet(IDB_KEYS.STORE);
+                    if (!storedData) return;
+                    const store = JSON.parse(storedData);
+                    let matchedMainTable = mainTableValue;
+                    if (!matchedMainTable) {
+                        for (const key of Object.keys(store)) {
+                            if (selectedTable.name.includes(key.replace(/\s+/g, ""))) {
+                                matchedMainTable = key;
+                                break;
+                            }
                         }
-                    }, 10);
-                }
-            });
-        } catch (e) { console.error("[Live Sync] Setup/Detection error:", e); }
-    });
+                    }
+                    if (!matchedMainTable) return;
+                    
+                    const mainDataSet = store[matchedMainTable];
+                    const relation = (mainDataSet.relations || []).find((r: any) => r.subTable === editorTargetTable);
+                    if (!relation || matchedMainTable !== mainTableValue) return;
+
+                    const idField = mainDataSet.idField || mainDataSet.fields[0];
+                    const idColumn = selectedTable.columns.getItemOrNullObject(idField);
+                    const tableRange = selectedTable.getRange();
+                    idColumn.load("index");
+                    range.load("rowIndex");
+                    tableRange.load("rowIndex");
+                    await context.sync();
+                    if (idColumn.isNullObject) return;
+
+                    const rowIdxInTable = range.rowIndex - tableRange.rowIndex;
+                    if (rowIdxInTable <= 0) return;
+
+                    const cell = selectedTable.getDataBodyRange().getCell(rowIdxInTable - 1, idColumn.index);
+                    cell.load("values");
+                    await context.sync();
+
+                    const newId = String(cell.values[0][0]);
+                    const currentId = currentFilterValueProp.isNullObject ? "" : currentFilterValueProp.value;
+
+                    console.log(`[Live Sync] Checking switch: newId=${newId}, currentId=${currentId}`);
+                    if (newId && newId !== currentId && newId.trim() !== "") {
+                        if (isSwitchingRecord) return;
+                        isSwitchingRecord = true;
+                        const editorCols = (editorColsProp.value || "").split(",").filter(c => c);
+                        setTimeout(async () => {
+                            try {
+                                console.log(`[Live Sync] Executing switch to ${newId}`);
+                                await switchGridEditorRecord(newId, relation.foreignKey, editorTargetTable, editorCols, subEditorSheet!.name, matchedMainTable);
+                            } catch (err) {
+                                console.error("[Live Sync] Switch error:", err);
+                            } finally {
+                                isSwitchingRecord = false;
+                            }
+                        }, 10);
+                    }
+                });
+            } catch (e) { console.error("[Live Sync] Setup/Detection error:", e); }
+        });
+
+        globalEventsBound = true;
+    }
+    
 
     await migrateFromLocalStorage(); // Migrate old data if present
     loadSettings();
     renderDashboard();
-    renderFormulaBuilder();
 
     // Setup Worksheet Activation Listener
     try {
@@ -405,7 +1263,7 @@ Office.onReady(async (info) => {
             mainTableProp.load("value");
             await context.sync();
             const isLive = !mainTableProp.isNullObject && mainTableProp.value !== "";
-            if (!purposeProp.isNullObject && purposeProp.value === "SubDataEditor") showEditorView(!tableProp.isNullObject ? tableProp.value : "Unknown", isLive);
+            if (!purposeProp.isNullObject && purposeProp.value === "SubDataEditor") showEditorView(!tableProp.isNullObject ? tableProp.value : t("unknown_table_name"), isLive);
         });
     } catch (e) { console.error("Sheet listener error:", e); }
   }
@@ -463,7 +1321,7 @@ export function customPrompt(title: string, message: string, defaultValue: strin
   });
 }
 
-export function customConfirm(title: string, message: string, confirmText: string = "Yes"): Promise<boolean> {
+export function customConfirm(title: string, message: string, confirmText?: string): Promise<boolean> {
   return new Promise((resolve) => {
       const modal = document.getElementById("custom-confirm-modal");
       const titleEl = document.getElementById("confirm-modal-title");
@@ -478,7 +1336,7 @@ export function customConfirm(title: string, message: string, confirmText: strin
 
       titleEl.innerText = title;
       messageEl.innerText = message;
-      btnYes.innerText = confirmText;
+      btnYes.innerText = confirmText || t("yes_btn");
       modal.style.display = "flex";
 
       const cleanup = () => {
@@ -510,7 +1368,13 @@ export function customManageListPrompt(title: string, message: string, items: st
         titleEl.innerText = title;
         messageEl.innerText = message;
         listEl.innerHTML = "";
-        btnAdd.innerHTML = `<i class="ms-Icon ms-Icon--Add" style="margin-right:8px;"></i>${addBtnText}`;
+
+        if (addBtnText) {
+            btnAdd.style.display = "";
+            btnAdd.innerHTML = `<i class="ms-Icon ms-Icon--Add" style="margin-right:8px;"></i>${addBtnText}`;
+        } else {
+            btnAdd.style.display = "none";
+        }
 
         const createLi = (original: string, isNew: boolean) => {
             const li = document.createElement("li");
@@ -521,10 +1385,10 @@ export function customManageListPrompt(title: string, message: string, items: st
             li.dataset.isDeleted = "false";
             
             li.innerHTML = `
-                <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: #fff;">
-                    <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
-                    <input type="text" class="ms-TextField-field list-name-input" value="${original}" placeholder="Name" style="flex: 1; padding: 4px 8px; font-weight: 600;" ${(!allowRename && !isNew) ? 'disabled' : ''} />
-                    <button type="button" class="icon-btn list-delete-btn" style="margin-left: 8px; color: #d13438;" title="Delete">
+                <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: var(--input-bg);">
+                    <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-inline-end: 8px; color: #888; cursor: grab;"></i>
+                    <input type="text" class="ms-TextField-field list-name-input" value="${original}" placeholder="${t("name_placeholder")}" style="flex: 1; padding: 4px 8px; font-weight: 600;" ${(!allowRename && !isNew) ? 'disabled' : ''} />
+                    <button type="button" class="icon-btn list-delete-btn" style="margin-left: 8px; color: #d13438;" title="${t("delete_tooltip")}">
                         <i class="ms-Icon ms-Icon--Delete"></i>
                     </button>
                 </div>
@@ -534,8 +1398,8 @@ export function customManageListPrompt(title: string, message: string, items: st
             
             const deleteBtn = li.querySelector(".list-delete-btn") as HTMLButtonElement;
             deleteBtn.onclick = async () => {
-                const itemName = inputEl.value || "this item";
-                const confirmed = await customConfirm("Mark for Deletion", `Are you sure you want to delete '${itemName}'? It will be permanently removed when you save changes.`, "Yes, delete");
+                const itemName = inputEl.value || t("this_item");
+            const confirmed = await customConfirm(t("mark_for_deletion"), t("mark_deletion_msg", itemName), t("del_version_confirm"));
                 if (confirmed) {
                     li.dataset.isDeleted = "true";
                     li.style.display = "none";
@@ -631,13 +1495,13 @@ export function customManageColumnsPrompt(title: string, message: string, items:
           const formula = calcFields[item] || "";
           
           li.innerHTML = `
-                      <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: #fff;">
-                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
-                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" ${isId ? 'disabled title="Cannot delete ID column"' : ''} />
-                  <input type="text" class="ms-TextField-field col-name-input" value="${item}" placeholder="Column Name" style="flex: 1; padding: 4px 8px; font-weight: 600;" />
-                  ${isId ? '<span style="font-size:10px; color:#0078d4; margin-left:8px; font-weight:bold;" title="Primary ID Column">(ID)</span>' : ''}
+                      <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: var(--input-bg);">
+                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-inline-end: 8px; color: #888; cursor: grab;"></i>
+                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" ${isId ? `disabled title="${t("cannot_delete_id_col_tooltip")}"` : ''} />
+                  <input type="text" class="ms-TextField-field col-name-input" value="${item}" placeholder="${t("col_name_placeholder")}" style="flex: 1; padding: 4px 8px; font-weight: 600;" />
+                  ${isId ? `<span style="font-size:10px; color:#0078d4; margin-left:8px; font-weight:bold;" title="${t("primary_id_col_tooltip")}">(ID)</span>` : ''}
                   <input type="hidden" class="col-formula-hidden" value="${formula.replace(/"/g, '&quot;')}" />
-                  <button type="button" class="icon-btn edit-formula-btn" style="margin-left: 8px; color: ${formula ? '#0078d4' : '#888'};" title="${formula ? 'Edit Formula: ' + formula.replace(/"/g, '&quot;') : 'Add Formula'}">
+                  <button type="button" class="icon-btn edit-formula-btn" style="margin-left: 8px; color: ${formula ? '#0078d4' : '#888'};" title="${formula ? t("edit_formula_tooltip", formula.replace(/"/g, '&quot;')) : t("add_formula_tooltip")}">
                       <i class="ms-Icon ms-Icon--Variable"></i>
                   </button>
               </div>
@@ -654,11 +1518,11 @@ export function customManageColumnsPrompt(title: string, message: string, items:
 
           formulaBtn.addEventListener("click", async () => {
               const currentFields = Array.from(listEl.children).map(child => (child.querySelector(".col-name-input") as HTMLInputElement).value.trim()).filter(Boolean);
-              const colName = nameInput.value.trim() || item || "New Column";
+              const colName = nameInput.value.trim() || item || t("new_column_default");
               
               modal.style.display = "none";
-              const res = await customFormPrompt(`Formula for '${colName}'`, "Define calculated formula (leave empty to remove):", [
-                  { id: "vFormula", label: "Formula Definition", type: "formula", varsList: varNames, tablesWithFields: tablesWithFields, fieldsList: currentFields, value: formulaHidden.value }
+              const res = await customFormPrompt(t("formula_for", colName), t("define_calc_formula"), [
+                  { id: "vFormula", label: t("formula_def_label"), type: "formula", varsList: varNames, tablesWithFields: tablesWithFields, fieldsList: currentFields, value: formulaHidden.value }
               ]);
               modal.style.display = "flex";
 
@@ -667,10 +1531,10 @@ export function customManageColumnsPrompt(title: string, message: string, items:
                   formulaHidden.value = newFormula;
                   if (newFormula) {
                       formulaBtn.style.color = "#0078d4";
-                      formulaBtn.title = "Edit Formula: " + newFormula.replace(/"/g, '&quot;');
+                      formulaBtn.title = t("edit_formula_tooltip", newFormula.replace(/"/g, '&quot;'));
                   } else {
                       formulaBtn.style.color = "#888";
-                      formulaBtn.title = "Add Formula";
+                      formulaBtn.title = t("add_formula_tooltip");
                   }
               }
           })
@@ -688,12 +1552,12 @@ export function customManageColumnsPrompt(title: string, message: string, items:
           li.dataset.original = "";
           
           li.innerHTML = `
-              <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: #fff;">
-                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
-                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" />
-                  <input type="text" class="ms-TextField-field col-name-input" value="" placeholder="New Column Name" style="flex: 1; padding: 4px 8px; font-weight: 600;" />
+              <div style="display:flex; align-items:center; width:100%; margin-bottom: 8px; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: var(--input-bg);">
+                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-inline-end: 8px; color: #888; cursor: grab;"></i>
+                  <input type="checkbox" class="col-delete-checkbox" style="margin-inline-end: 8px;" />
+                  <input type="text" class="ms-TextField-field col-name-input" value="" placeholder="${t("new_col_name_placeholder")}" style="flex: 1; padding: 4px 8px; font-weight: 600;" />
                   <input type="hidden" class="col-formula-hidden" value="" />
-                  <button type="button" class="icon-btn edit-formula-btn" style="margin-left: 8px; color: #888;" title="Add Formula">
+                  <button type="button" class="icon-btn edit-formula-btn" style="margin-left: 8px; color: #888;" title="${t("add_formula_tooltip")}">
                       <i class="ms-Icon ms-Icon--Variable"></i>
                   </button>
               </div>
@@ -707,11 +1571,11 @@ export function customManageColumnsPrompt(title: string, message: string, items:
 
           formulaBtn.addEventListener("click", async () => {
               const currentFields = Array.from(listEl.children).map(child => (child.querySelector(".col-name-input") as HTMLInputElement).value.trim()).filter(Boolean);
-              const colName = nameInput.value.trim() || "New Column";
+              const colName = nameInput.value.trim() || t("new_column_default");
               
               modal.style.display = "none";
-              const res = await customFormPrompt(`Formula for '${colName}'`, "Define calculated formula (leave empty to remove):", [
-                  { id: "vFormula", label: "Formula Definition", type: "formula", varsList: varNames, tablesWithFields: tablesWithFields, fieldsList: currentFields, value: formulaHidden.value }
+              const res = await customFormPrompt(t("formula_for", colName), t("define_calc_formula"), [
+                  { id: "vFormula", label: t("formula_def_label"), type: "formula", varsList: varNames, tablesWithFields: tablesWithFields, fieldsList: currentFields, value: formulaHidden.value }
               ]);
               modal.style.display = "flex";
 
@@ -720,10 +1584,10 @@ export function customManageColumnsPrompt(title: string, message: string, items:
                   formulaHidden.value = newFormula;
                   if (newFormula) {
                       formulaBtn.style.color = "#0078d4";
-                      formulaBtn.title = "Edit Formula: " + newFormula.replace(/"/g, '&quot;');
+                      formulaBtn.title = t("edit_formula_tooltip", newFormula.replace(/"/g, '&quot;'));
                   } else {
                       formulaBtn.style.color = "#888";
-                      formulaBtn.title = "Add Formula";
+                      formulaBtn.title = t("add_formula_tooltip");
                   }
               }
           });
@@ -831,8 +1695,8 @@ export function customDataSummaryPrompt(
       
       step1Div.style.display = "block";
       step2Div.style.display = "none";
-      btnDeleteSelected.style.display = "block";
-      btnNext.style.display = "block";
+      btnDeleteSelected.style.display = "inline-flex";
+      btnNext.style.display = "inline-flex";
       btnBack.style.display = "none";
       btnOk.style.display = "none";
       
@@ -854,7 +1718,7 @@ export function customDataSummaryPrompt(
                   if (!badge) {
                       badge = document.createElement("span");
                       badge.className = "id-badge";
-                      badge.style.cssText = "font-size:10px; color:#0078d4; margin-left:8px; font-weight:bold;";
+                      badge.style.cssText = "font-size:10px; color:#0078d4; margin-inline-start:8px; font-weight:bold;";
                       badge.innerText = "(ID)";
                       li.querySelector('div')?.appendChild(badge);
                   }
@@ -873,8 +1737,8 @@ export function customDataSummaryPrompt(
           li.dataset.original = item;
           li.innerHTML = `
               <div style="display:flex; align-items:center; width:100%;">
-                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-right: 8px; color: #888; cursor: grab;"></i>
-                  <input type="checkbox" class="col-delete-checkbox" style="margin-right: 8px;" />
+                  <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-inline-end: 8px; color: #888; cursor: grab;"></i>
+                  <input type="checkbox" class="col-delete-checkbox" style="margin-inline-end: 8px;" />
                 <input type="text" class="ms-TextField-field" value="${item}" style="flex: 1; padding: 2px 8px;" />
               </div>
           `;
@@ -903,6 +1767,22 @@ export function customDataSummaryPrompt(
 
       let validationData: { idField: string, fields: string[], records: any[] } | null = null;
 
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if (e.key === "Escape") {
+              e.preventDefault();
+              btnCancel.click();
+          } else if (e.key === "Enter") {
+              const activeEl = document.activeElement as HTMLElement;
+              // Allow Enter to work normally if the user has explicitly tabbed to another button
+              if (activeEl && activeEl.tagName === "BUTTON" && activeEl !== btnNext && activeEl !== btnOk && activeEl !== btnCancel && activeEl !== btnBack && activeEl !== btnDeleteSelected) return;
+              
+              e.preventDefault();
+              if (btnNext.style.display !== "none") btnNext.click();
+              else if (btnOk.style.display !== "none") btnOk.click();
+          }
+      };
+      document.addEventListener("keydown", handleKeyDown);
+
       const cleanup = () => {
           modal.style.display = "none";
           btnDeleteSelected.onclick = null;
@@ -912,6 +1792,7 @@ export function customDataSummaryPrompt(
           btnCancel.onclick = null;
           idSelect.onchange = null;
           listEl.removeEventListener("dragover", handleDragOver);
+          document.removeEventListener("keydown", handleKeyDown);
       };
 
       btnDeleteSelected.onclick = () => {
@@ -964,8 +1845,8 @@ export function customDataSummaryPrompt(
           step2Div.style.display = "block";
           btnDeleteSelected.style.display = "none";
           btnNext.style.display = "none";
-          btnBack.style.display = "block";
-          btnOk.style.display = "block";
+          btnBack.style.display = "inline-flex";
+          btnOk.style.display = "inline-flex";
           
           if (recordsCountEl) recordsCountEl.innerText = String(finalRecords.length); 
           if (idColumnEl) idColumnEl.innerText = validationData.idField;
@@ -975,8 +1856,8 @@ export function customDataSummaryPrompt(
       btnBack.onclick = () => {
           step1Div.style.display = "block";
           step2Div.style.display = "none";
-          btnDeleteSelected.style.display = "block";
-          btnNext.style.display = "block";
+          btnDeleteSelected.style.display = "inline-flex";
+          btnNext.style.display = "inline-flex";
           btnBack.style.display = "none";
           btnOk.style.display = "none";
           validationData = null;
@@ -993,7 +1874,7 @@ export async function applyCalculatedFields(records: any[], fields: string[], ca
     const variables = vStoreRaw ? JSON.parse(vStoreRaw) : {};
 
     const evaluateVar = (vName: string, visited: Set<string>): any => {
-        if (visited.has(vName)) throw new Error("Circular reference detected");
+        if (visited.has(vName)) throw new Error(t("circular_reference_detected"));
         visited.add(vName);
         const vForm = variables[vName];
         if (!vForm) return 0;
@@ -1072,7 +1953,7 @@ export interface FormField {
     optionsMap?: Record<string, string[]>;
 }
 
-export function customFormPrompt(title: string, message: string, fields: FormField[], confirmText: string = "Save"): Promise<Record<string, string> | null> {
+export function customFormPrompt(title: string, message: string, fields: FormField[], confirmText?: string): Promise<Record<string, string> | null> {
     return new Promise((resolve) => {
         const modal = document.getElementById("custom-form-modal");
         const titleEl = document.getElementById("form-modal-title");
@@ -1088,7 +1969,11 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
 
         titleEl.innerText = title;
         messageEl.innerText = message;
-        btnOk.innerText = confirmText;
+        if (confirmText) {
+            btnOk.innerText = confirmText;
+        } else {
+            btnOk.innerText = t("save_btn");
+        }
         inputsContainer.innerHTML = "";
 
         const inputElements: { id: string, el: HTMLInputElement | HTMLSelectElement | HTMLDivElement, type: string }[] = [];
@@ -1163,45 +2048,45 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
                 wrap.style.border = "1px solid var(--border-color)";
                 wrap.style.borderRadius = "4px";
                 wrap.style.overflow = "hidden";
-                wrap.style.backgroundColor = "#fdfdfd";
+                wrap.style.backgroundColor = "var(--input-bg)";
                 
                 let fieldsHtml = "";
                 if (f.fieldsList && f.fieldsList.length > 0) {
                     fieldsHtml = `<div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center;">
-                        <span style="font-size:9px; font-weight:bold; color:#888;">FIELDS:</span>
-                        ${f.fieldsList.map(i => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#e1dfdd; border:1px solid #ccc; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="[${i}]">${i}</button>`).join('')}
+                        <span style="font-size:9px; font-weight:bold; color:#888;">${t("fields_label")}</span>
+                        ${f.fieldsList.map(i => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; white-space:nowrap; color:var(--text-color);" data-op="[${i}]">${i}</button>`).join('')}
                     </div>`;
                 }
                 
                 const tablesWithFields = f.tablesWithFields || {};
 
                 const toolbarHtml = `
-                <div style="background: #f3f2f1; padding: 6px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                <div style="background: var(--hover-bg); padding: 6px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
                     <div style="display:flex; gap:4px;">
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" + ">+</button>
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" - ">-</button>
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" * ">*</button>
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" / ">/</button>
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" ( ">(</button>
-                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:#fff; border:1px solid #ccc; border-radius:2px; cursor:pointer;" data-op=" ) ">)</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" + ">+</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" - ">-</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" * ">*</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" / ">/</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" ( ">(</button>
+                        <button type="button" class="col-insert-op" style="min-width:24px; padding:2px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; color:var(--text-color);" data-op=" ) ">)</button>
                     </div>
                     <div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;">
-                        <span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">FUNCS:</span>
-                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="DC.SUM('Table', 'Col')">SUM()</button>
-                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="DC.COUNT('Table')">COUNT()</button>
-                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="DC.VAR('VarName')">VAR()</button>
-                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op=" ( condition ? true_val : false_val ) ">IF()</button>
+                        <span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">${t("funcs_label")}</span>
+                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op="DC.SUM('Table', 'Col')">SUM()</button>
+                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op="DC.COUNT('Table')">COUNT()</button>
+                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op="DC.VAR('VarName')">VAR()</button>
+                        <button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#dff6dd; border:1px solid #b7e0b5; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op=" ( condition ? true_val : false_val ) ">IF()</button>
                     </div>
-                    ${(f.varsList && f.varsList.length > 0) ? `<div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;"><span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">VARS:</span>${f.varsList.map(v => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#c7e0f4; border:1px solid #99c9ef; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="DC.VAR('${v}')">${v}</button>`).join('')}</div>` : ''}
-                    ${Object.keys(tablesWithFields).length > 0 ? `<div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;"><span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">TABLES:</span>${Object.keys(tablesWithFields).map(t => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#fce1cb; border:1px solid #f9c79f; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="'${t}'">${t}</button>`).join('')}</div>` : ''}
+                    ${(f.varsList && f.varsList.length > 0) ? `<div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;"><span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">${t("vars_label")}</span>${f.varsList.map(v => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#c7e0f4; border:1px solid #99c9ef; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op="DC.VAR('${v}')">${v}</button>`).join('')}</div>` : ''}
+                    ${Object.keys(tablesWithFields).length > 0 ? `<div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;"><span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">${t("tables_label")}</span>${Object.keys(tablesWithFields).map(t => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#fce1cb; border:1px solid #f9c79f; border-radius:2px; cursor:pointer; white-space:nowrap; color:#222;" data-op="'${t}'">${t}</button>`).join('')}</div>` : ''}
                     <div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; align-items:center; width:100%;">
-                        <span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">FIELDS:</span>
-                        <select class="field-table-selector" style="font-size:10px; padding:2px; max-width:100px; border:1px solid #ccc; border-radius:2px; flex-shrink:0;">
-                            ${(f.fieldsList && f.fieldsList.length > 0) ? '<option value="_CURRENT_">Current Table</option>' : '<option value="">-- Select Table --</option>'}
+                        <span style="font-size:9px; font-weight:bold; color:#888; flex-shrink:0;">${t("fields_label")}</span>
+                        <select class="field-table-selector" style="font-size:10px; padding:2px; max-width:100px; border:1px solid var(--border-color); border-radius:2px; flex-shrink:0; background:var(--input-bg); color:var(--text-color);">
+                            ${(f.fieldsList && f.fieldsList.length > 0) ? `<option value="_CURRENT_">${t("current_table_opt")}</option>` : `<option value="">${t("select_table_opt")}</option>`}
                             ${Object.keys(tablesWithFields).map(t => `<option value="${t}">${t}</option>`).join('')}
                         </select>
                         <span class="dynamic-fields-container" style="display:flex; gap:4px; flex-shrink:0;">
-                            ${(f.fieldsList || []).map(i => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:#e1dfdd; border:1px solid #ccc; border-radius:2px; cursor:pointer; white-space:nowrap;" data-op="[${i}]">${i}</button>`).join('')}
+                            ${(f.fieldsList || []).map(i => `<button type="button" class="col-insert-op" style="font-size:10px; padding:2px 6px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; white-space:nowrap; color:var(--text-color);" data-op="[${i}]">${i}</button>`).join('')}
                         </span>
                     </div>
                 </div>
@@ -1218,7 +2103,7 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
                 input.style.minHeight = "44px";
                 input.style.resize = "vertical";
                 input.style.fontFamily = "monospace";
-                input.placeholder = "Type or click above to build formula...";
+                input.placeholder = t("formula_builder_placeholder");
                 if (f.value !== undefined) input.value = f.value;
                 
                 wrap.appendChild(input);
@@ -1248,7 +2133,7 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
                             const btn = document.createElement("button");
                             btn.type = "button";
                             btn.className = "col-insert-op";
-                            btn.style.cssText = "font-size:10px; padding:2px 6px; background:#e1dfdd; border:1px solid #ccc; border-radius:2px; cursor:pointer; white-space:nowrap;";
+                            btn.style.cssText = "font-size:10px; padding:2px 6px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:2px; cursor:pointer; white-space:nowrap; color:var(--text-color);";
                             const opVal = isCurrent ? `[${fld}]` : `'${fld}'`;
                             btn.dataset.op = opVal;
                             btn.innerText = fld;
@@ -1287,7 +2172,7 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
                             sel.innerHTML = "";
                             const emptyOpt = document.createElement("option");
                             emptyOpt.value = "-- None --";
-                            emptyOpt.text = "-- None --";
+                            emptyOpt.text = t("manage_rel_none");
                             sel.appendChild(emptyOpt);
                             opts.forEach(o => {
                                 const opt = document.createElement("option");
@@ -1330,53 +2215,53 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
     });
 }
 
-const formulaDefinitions: Record<string, { id: string, label: string, required: boolean }[]> = {
+const formulaDefinitions: Record<string, { id: string, labelKey: string, required: boolean }[]> = {
     "GET": [
-        { id: "param-id", label: "Record ID", required: false },
-        { id: "param-fieldName", label: "Field Name", required: false },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false }
+        { id: "param-id", labelKey: "param_record_id", required: false },
+        { id: "param-fieldName", labelKey: "param_field_name", required: false },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false }
     ],
     "SEARCH": [
-        { id: "param-searchField", label: "Search Field", required: true },
-        { id: "param-searchValue", label: "Search Value", required: true },
-        { id: "param-returnField", label: "Return Field", required: true },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false }
+        { id: "param-searchField", labelKey: "param_search_field", required: true },
+        { id: "param-searchValue", labelKey: "param_search_value", required: true },
+        { id: "param-returnField", labelKey: "param_return_field", required: true },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false }
     ],
     "FILTER": [
-        { id: "param-searchField", label: "Search Field", required: true },
-        { id: "param-searchValue", label: "Search Value", required: true },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false },
-        { id: "param-exactMatch", label: "Exact Match (TRUE/FALSE)", required: false }
+        { id: "param-searchField", labelKey: "param_search_field", required: true },
+        { id: "param-searchValue", labelKey: "param_search_value", required: true },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false },
+        { id: "param-exactMatch", labelKey: "param_exact_match", required: false }
     ],
     "SUM": [
-        { id: "param-sumField", label: "Sum Field", required: true },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false }
+        { id: "param-sumField", labelKey: "param_sum_field", required: true },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false }
     ],
     "SUMIFS": [
-        { id: "param-sumField", label: "Sum Field", required: true },
-        { id: "param-criteriaField", label: "Criteria Field", required: true },
-        { id: "param-criteriaValue", label: "Criteria Value", required: true },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false }
+        { id: "param-sumField", labelKey: "param_sum_field", required: true },
+        { id: "param-criteriaField", labelKey: "param_criteria_field", required: true },
+        { id: "param-criteriaValue", labelKey: "param_criteria_value", required: true },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false }
     ],
     "JOIN": [
-        { id: "param-baseTableName", label: "Base Table Name", required: true },
-        { id: "param-foreignKeyField", label: "Link Column", required: true },
-        { id: "param-foreignTableName", label: "Target Table Name", required: true },
-        { id: "param-foreignReturnField", label: "Target Return Field", required: true }
+        { id: "param-baseTableName", labelKey: "param_base_table_name", required: true },
+        { id: "param-foreignKeyField", labelKey: "param_link_column", required: true },
+        { id: "param-foreignTableName", labelKey: "param_target_table_name", required: true },
+        { id: "param-foreignReturnField", labelKey: "param_target_return_field", required: true }
     ],
     "SORT": [
-        { id: "param-sortField", label: "Sort Field", required: true },
-        { id: "param-ascending", label: "Ascending (TRUE/FALSE)", required: false },
-        { id: "param-dataTableName", label: "Data Table Name", required: false },
-        { id: "param-rev", label: "Revision", required: false }
+        { id: "param-sortField", labelKey: "param_sort_field", required: true },
+        { id: "param-ascending", labelKey: "param_ascending", required: false },
+        { id: "param-dataTableName", labelKey: "param_data_table_name", required: false },
+        { id: "param-rev", labelKey: "param_revision", required: false }
     ],
     "VAR": [
-        { id: "param-varName", label: "Variable Name", required: true }
+        { id: "param-varName", labelKey: "param_variable_name", required: true }
     ]
 };
 
@@ -1387,8 +2272,6 @@ export async function renderFormulaBuilder() {
 
     const formula = select.value;
     const fields = formulaDefinitions[formula] || [];
-
-    container.innerHTML = "";
 
     const storedData = await idbGet(IDB_KEYS.STORE);
     let store: Store = {};
@@ -1405,14 +2288,14 @@ export async function renderFormulaBuilder() {
     const getTargetTableForInput = (inputId: string): string => {
         if (formula === "JOIN") {
             if (inputId === "param-foreignReturnField") {
-                const fInput = document.getElementById("param-foreignTableName") as HTMLInputElement;
+                const fInput = document.getElementById("param-foreignTableName") as HTMLSelectElement;
                 return fInput && fInput.value.trim() !== "" ? fInput.value.trim() : "";
             } else {
-                const bInput = document.getElementById("param-baseTableName") as HTMLInputElement;
+                const bInput = document.getElementById("param-baseTableName") as HTMLSelectElement;
                 return bInput && bInput.value.trim() !== "" ? bInput.value.trim() : defaultTable;
             }
         } else {
-            const tInput = document.getElementById("param-dataTableName") as HTMLInputElement;
+            const tInput = document.getElementById("param-dataTableName") as HTMLSelectElement;
             return tInput && tInput.value.trim() !== "" ? tInput.value.trim() : defaultTable;
         }
     };
@@ -1428,26 +2311,30 @@ export async function renderFormulaBuilder() {
             targetEl.innerHTML = "";
             
             if (ref.el.tagName === "SELECT") {
-                const emptyOpt = document.createElement("option");
-                emptyOpt.value = "";
-                emptyOpt.text = "Select...";
-                targetEl.appendChild(emptyOpt);
+                const defaultOpt = document.createElement("option");
+                defaultOpt.value = "";
+                defaultOpt.text = t("select_option");
+                targetEl.appendChild(defaultOpt);
             }
 
             if (ref.id.toLowerCase().includes("tablename")) {
                 tables.forEach(t => {
                     const opt = document.createElement("option");
                     opt.value = t;
+                    if (ref.el.tagName === "SELECT") opt.text = t;
                     targetEl.appendChild(opt);
                 });
+                if (ref.el.tagName === "SELECT" && tables.includes(currentVal)) {
+                    ref.el.value = currentVal;
+                }
                 return;
             }
 
             if (ref.id === "param-exactMatch" || ref.id === "param-ascending") {
-                ["TRUE", "FALSE"].forEach(t => {
+                [t("true_text"), t("false_text")].forEach(tStr => {
                     const opt = document.createElement("option");
-                    opt.value = t;
-                    opt.text = t;
+                    opt.value = tStr;
+                    opt.text = tStr;
                     targetEl.appendChild(opt);
                 });
                 if (ref.el.tagName === "SELECT" && ["TRUE", "FALSE"].includes(currentVal)) ref.el.value = currentVal;
@@ -1485,6 +2372,8 @@ export async function renderFormulaBuilder() {
         });
     };
 
+    container.innerHTML = "";
+
     fields.forEach(f => {
         const fieldDiv = document.createElement("div");
         fieldDiv.className = "ms-TextField";
@@ -1492,19 +2381,23 @@ export async function renderFormulaBuilder() {
 
         const label = document.createElement("label");
         label.className = "ms-Label";
-        label.innerHTML = `${f.label} ${f.required ? '<span style="color:#d13438;">*</span>' : '<span style="color:#888;font-weight:normal;">(Optional)</span>'}`;
+        label.innerHTML = `${t(f.labelKey)} ${f.required ? '<span style="color:#d13438;">*</span>' : `<span style="color:#888;font-weight:normal;">${t("optional_label")}</span>`}`;
 
         const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch" || f.id === "param-ascending";
         let inputEl: HTMLInputElement | HTMLSelectElement;
         let dataList: HTMLDataListElement | undefined;
 
-        if (isSelect) {
+        if (isSelect || f.id.toLowerCase().includes("tablename")) { // Data Table Names should also be a select for consistency
             inputEl = document.createElement("select");
             inputEl.id = f.id;
             inputEl.className = "ms-Dropdown-title";
             inputRefs.push({ id: f.id, el: inputEl });
             inputEl.addEventListener("focus", () => { activeFormulaInput = null; });
             inputEl.addEventListener("mousedown", () => { activeFormulaInput = null; });
+            
+            if (f.id.toLowerCase().includes("tablename")) {
+                inputEl.addEventListener("change", updateDataLists);
+            }
         } else {
             inputEl = document.createElement("input");
             inputEl.type = "text";
@@ -1520,8 +2413,8 @@ export async function renderFormulaBuilder() {
 
             inputRefs.push({ id: f.id, el: inputEl, datalist: dataList });
 
-            inputEl.addEventListener("focus", () => { activeFormulaInput = inputEl as HTMLInputElement; });
-            inputEl.addEventListener("mousedown", () => { activeFormulaInput = inputEl as HTMLInputElement; });
+            inputEl.addEventListener("focus", function() { activeFormulaInput = this as HTMLInputElement; });
+            inputEl.addEventListener("mousedown", function() { activeFormulaInput = this as HTMLInputElement; });
 
             if (f.id.toLowerCase().includes("tablename")) {
                 inputEl.addEventListener("input", updateDataLists);
@@ -1552,8 +2445,8 @@ export async function insertBuiltFormula() {
             const input = document.getElementById(f.id) as HTMLInputElement | HTMLSelectElement;
             let val = input.value.trim();
 
-            if (f.required && val === "") {
-                throw new Error(`'${f.label}' is required.`);
+            if (f.required && val === "") { 
+                throw new Error(t("field_is_required", t(f.labelKey)));
             }
 
             if (val === "") {
@@ -1587,7 +2480,7 @@ export async function insertBuiltFormula() {
         });
 
         if (status) {
-            status.innerText = `Inserted formula: ${formulaStr}`;
+            status.innerText = t("inserted_formula", formulaStr);
             status.style.color = "green";
         }
 
@@ -1616,11 +2509,11 @@ export function toggleSettings() {
   settingsBtn?.classList.remove('active');
 
   if (isSettingsOpen) {
-    settingsView.style.display = 'none';
-    mainView.style.display = 'block';
+    if (settingsView) settingsView.style.display = 'none';
+    if (mainView) mainView.style.display = 'block';
   } else {
-    settingsView.style.display = 'block';
-    mainView.style.display = 'none';
+    if (settingsView) settingsView.style.display = 'block';
+    if (mainView) mainView.style.display = 'none';
     settingsBtn?.classList.add('active');
   }
 }
@@ -1649,13 +2542,332 @@ export async function loadSettings() {
   applyTranslations();
 }
  
-export async function loadRangeForCapture(dataName: string, familyName: string, parentName: string) {
+export function customTableWizardPrompt(
+    headers: string[],
+    dataRows: any[][],
+    workspaces: string[],
+    allTables: string[],
+    defaultWorkspace: string = "Public",
+    defaultTableName: string = ""
+): Promise<{ tableName: string, workspace: string, parentTable: string, foreignKey: string, idField: string, fields: string[], records: any[] } | null> {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("custom-wizard-modal")!;
+        const stepIndicator = document.getElementById("wizard-step-indicator")!;
+        const errorEl = document.getElementById("wizard-error")!;
+        
+        const step1 = document.getElementById("wizard-step-1")!;
+        const step2 = document.getElementById("wizard-step-2")!;
+        const step3 = document.getElementById("wizard-step-3")!;
+        const step4 = document.getElementById("wizard-step-4")!;
+        
+        const btnCancel = document.getElementById("wizard-btn-cancel") as HTMLButtonElement;
+        const btnBack = document.getElementById("wizard-btn-back") as HTMLButtonElement;
+        const btnNext = document.getElementById("wizard-btn-next") as HTMLButtonElement;
+        const btnSave = document.getElementById("wizard-btn-save") as HTMLButtonElement;
+        const btnDeleteSelected = document.getElementById("wizard-delete-selected") as HTMLButtonElement;
+
+        // Step 1 Inputs
+        const inputTableName = document.getElementById("wizard-table-name") as HTMLInputElement;
+        const inputWorkspace = document.getElementById("wizard-workspace") as HTMLInputElement;
+        const inputWorkspaceList = document.getElementById("wizard-workspace-list")!;
+        const selectParent = document.getElementById("wizard-parent-table") as HTMLSelectElement;
+
+        // Step 2 Inputs
+        const selectId = document.getElementById("wizard-id-select") as HTMLSelectElement;
+        const columnsList = document.getElementById("wizard-columns-list")!;
+
+        // Step 3 Inputs
+        const selectFk = document.getElementById("wizard-fk-select") as HTMLSelectElement;
+        const parentNameDisplay = document.getElementById("wizard-parent-name-display")!;
+
+        // Step 4 Displays
+        const sumName = document.getElementById("wizard-summary-name")!;
+        const sumWs = document.getElementById("wizard-summary-ws")!;
+        const sumRecords = document.getElementById("wizard-summary-records")!;
+        const sumId = document.getElementById("wizard-summary-id")!;
+        const sumCols = document.getElementById("wizard-summary-cols")!;
+        const sumParentRow = document.getElementById("wizard-summary-parent-row")!;
+        const sumParent = document.getElementById("wizard-summary-parent")!;
+
+        let currentStepIndex = 0;
+        let logicalSteps = [1, 2, 4];
+        let hasParent = false;
+
+        let finalData = {
+            tableName: "",
+            workspace: "",
+            parentTable: "",
+            foreignKey: "",
+            idField: "",
+            fields: [] as string[],
+            records: [] as any[]
+        };
+
+        const showError = (msg: string) => {
+            errorEl.innerText = msg;
+            errorEl.style.display = "block";
+        };
+        const hideError = () => { errorEl.style.display = "none"; };
+
+        const showStep = () => {
+            hideError();
+            const physicalStep = logicalSteps[currentStepIndex];
+            
+            step1.style.display = physicalStep === 1 ? "block" : "none";
+            step2.style.display = physicalStep === 2 ? "block" : "none";
+            step3.style.display = physicalStep === 3 ? "block" : "none";
+            step4.style.display = physicalStep === 4 ? "block" : "none";
+
+            btnBack.style.display = currentStepIndex > 0 ? "inline-flex" : "none";
+            btnNext.style.display = currentStepIndex < logicalSteps.length - 1 ? "inline-flex" : "none";
+            btnSave.style.display = currentStepIndex === logicalSteps.length - 1 ? "inline-flex" : "none";
+
+            stepIndicator.innerText = t("wizard_step_indicator", currentStepIndex + 1, logicalSteps.length);
+        };
+
+        const updateStepTotals = () => {
+            hasParent = selectParent.value !== "-- None --";
+            logicalSteps = hasParent ? [1, 2, 3, 4] : [1, 2, 4];
+            showStep();
+        };
+
+        // --- INIT STEP 1 ---
+        inputTableName.value = defaultTableName;
+        inputWorkspace.value = defaultWorkspace;
+        
+        inputWorkspaceList.innerHTML = "";
+        workspaces.forEach(ws => {
+            const opt = document.createElement("option");
+            opt.value = ws;
+            inputWorkspaceList.appendChild(opt);
+        });
+
+        selectParent.innerHTML = `<option value="-- None --">${t("manage_rel_none")}</option>`;
+        allTables.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            selectParent.appendChild(opt);
+        });
+        
+        selectParent.onchange = updateStepTotals;
+        updateStepTotals();
+
+        // --- INIT STEP 2 ---
+        const initStep2 = () => {
+            selectId.innerHTML = "";
+            headers.forEach((h, i) => {
+                const opt = document.createElement("option");
+                opt.value = h;
+                opt.text = h || t("column_generic", i + 1);
+                selectId.appendChild(opt);
+            });
+            
+            columnsList.innerHTML = "";
+            headers.forEach((item) => {
+                const li = document.createElement("li");
+                li.className = "sortable-item";
+                li.draggable = true;
+                li.dataset.original = item;
+                li.innerHTML = `
+                    <div style="display:flex; align-items:center; width:100%; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; background: var(--input-bg); margin-bottom: 4px;">
+                        <i class="ms-Icon ms-Icon--GlobalNavButton" style="margin-inline-end: 8px; color: #888; cursor: grab;"></i>
+                        <input type="checkbox" class="col-delete-checkbox" style="margin-inline-end: 8px;" />
+                      <input type="text" class="ms-TextField-field list-name-input" value="${item}" style="flex: 1; padding: 2px 8px; font-weight: 600; border: none; outline: none; background: transparent; color: var(--text-color);" placeholder="${t("name_placeholder")}" />
+                    </div>
+                `;
+                const inputEl = li.querySelector("input[type='text']");
+                if (inputEl) inputEl.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+                li.addEventListener("dragstart", () => li.classList.add("dragging"));
+                li.addEventListener("dragend", () => li.classList.remove("dragging"));
+                columnsList.appendChild(li);
+            });
+
+            const renderBadges = () => {
+                const idName = selectId.value;
+                Array.from(columnsList.children).forEach(li => {
+                    const orig = (li as HTMLElement).dataset.original;
+                    let badge = li.querySelector('.id-badge');
+                    if (orig === idName) {
+                        if (!badge) {
+                            badge = document.createElement("span");
+                            badge.className = "id-badge";
+                            badge.style.cssText = "font-size:10px; color:#0078d4; margin-inline-start:8px; font-weight:bold;";
+                            badge.innerText = t("id_badge");
+                            li.querySelector('div')?.appendChild(badge);
+                        }
+                    } else {
+                        if (badge) badge.remove();
+                    }
+                });
+            };
+            selectId.onchange = renderBadges;
+            renderBadges();
+        };
+        initStep2();
+
+        const handleDragOver = (e: DragEvent) => {
+            e.preventDefault();
+            const dragging = columnsList.querySelector('.dragging') as HTMLElement;
+            if (!dragging) return;
+            const siblings = [...columnsList.querySelectorAll('.sortable-item:not(.dragging)')] as HTMLElement[];
+            const nextSibling = siblings.find(sibling => {
+                const box = sibling.getBoundingClientRect();
+                return (e.clientY - box.top - box.height / 2) < 0;
+            });
+            if (nextSibling) columnsList.insertBefore(dragging, nextSibling);
+            else columnsList.appendChild(dragging);
+        };
+        columnsList.addEventListener("dragover", handleDragOver);
+
+        btnDeleteSelected.onclick = () => {
+            const checkboxes = columnsList.querySelectorAll('.col-delete-checkbox:checked');
+            checkboxes.forEach(cb => {
+                const li = cb.closest('.sortable-item');
+                if (li && (li as HTMLElement).dataset.original !== selectId.value) li.remove(); // Allow deletion if not the ID field
+                else if (li) { showError(t("cannot_delete_id_column_msg", selectId.value)); }
+            });
+        };
+
+        // --- INIT STEP 3 ---
+        const initStep3 = () => {
+            parentNameDisplay.innerText = selectParent.value;
+            const newFieldsList = Array.from(columnsList.children).map(li => ((li as HTMLElement).querySelector(".list-name-input") as HTMLInputElement).value.trim());
+            selectFk.innerHTML = "";
+            newFieldsList.forEach(f => {
+                const opt = document.createElement("option");
+                opt.value = f;
+                opt.text = f;
+                selectFk.appendChild(opt);
+            });
+        };
+
+        // --- INIT STEP 4 ---
+        const initStep4 = () => {
+            sumName.innerText = finalData.tableName;
+            sumWs.innerText = finalData.workspace;
+            sumRecords.innerText = String(finalData.records.length);
+            sumId.innerText = finalData.idField;
+            sumCols.innerText = finalData.fields.join(", ");
+            
+            if (hasParent) {
+                sumParentRow.style.display = "block";
+                sumParent.innerText = `${finalData.parentTable} (via ${finalData.foreignKey})`;
+            } else {
+                sumParentRow.style.display = "none";
+            }
+        };
+
+        // --- NAVIGATION LOGIC ---
+        btnNext.onclick = () => {
+            const physicalStep = logicalSteps[currentStepIndex];
+            if (physicalStep === 1) {
+                finalData.tableName = inputTableName.value.trim();
+                finalData.workspace = inputWorkspace.value.trim();
+                finalData.parentTable = selectParent.value !== "-- None --" ? selectParent.value : "";
+                
+                if (!finalData.tableName) { showError(t("table_name_required_error")); return; }
+                if (allTables.includes(finalData.tableName)) { showError(t("table_already_exists_error", finalData.tableName)); return; }
+                if (!finalData.workspace) { showError(t("workspace_name_required_error")); return; }
+
+                currentStepIndex++;
+                showStep();
+            } 
+            else if (physicalStep === 2) {
+                const selectedIdOrigName = selectId.value;
+                const idLi = Array.from(columnsList.children).find(li => (li as HTMLElement).dataset.original === selectedIdOrigName);
+                if (!idLi) { showError(t("primary_id_column_missing_error")); return; }
+
+                const idIndexOrig = headers.indexOf(selectedIdOrigName);
+                const idSet = new Set();
+                for (let i = 0; i < dataRows.length; i++) {
+                    const val = String(dataRows[i][idIndexOrig]);
+                    if (!val || val.trim() === "") { showError(t("row_has_empty_id_error", i + 1)); return; }
+                    if (idSet.has(val)) { showError(t("duplicate_id_found_error", val)); return; }
+                    idSet.add(val);
+                }
+                
+                const newFieldsList = Array.from(columnsList.children).map(li => ((li as HTMLElement).querySelector(".list-name-input") as HTMLInputElement).value.trim());
+                const uniqueFields = new Set(newFieldsList);
+                if (uniqueFields.size !== newFieldsList.length) { showError(t("all_column_names_must_be_unique_error")); return; }
+                
+                const columnsInfo = Array.from(columnsList.children).map(li => ({
+                    oIdx: headers.indexOf((li as HTMLElement).dataset.original as string),
+                    newName: ((li as HTMLElement).querySelector(".list-name-input") as HTMLInputElement).value.trim()
+                }));
+
+                finalData.records = dataRows.map(row => {
+                    const rec: any = {};
+                    columnsInfo.forEach(col => { rec[col.newName] = row[col.oIdx]; });
+                    rec.__DC_ID__ = String(row[idIndexOrig]);
+                    return rec;
+                });
+
+                finalData.idField = ((idLi as HTMLElement).querySelector(".list-name-input") as HTMLInputElement).value.trim();
+                finalData.fields = newFieldsList;
+
+                if (hasParent) {
+                    initStep3();
+                } else {
+                    finalData.foreignKey = "";
+                    initStep4();
+                }
+                currentStepIndex++;
+                showStep();
+            }
+            else if (physicalStep === 3) {
+                finalData.foreignKey = selectFk.value;
+                if (!finalData.foreignKey) { showError(t("link_column_required_error")); return; }
+                initStep4();
+                currentStepIndex++;
+                showStep();
+            }
+        };
+
+        btnBack.onclick = () => {
+            currentStepIndex--;
+            showStep();
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                btnCancel.click();
+            } else if (e.key === "Enter") {
+                const activeEl = document.activeElement as HTMLElement;
+                // Allow Enter to work normally if the user has explicitly tabbed to another button
+                if (activeEl && activeEl.tagName === "BUTTON" && activeEl !== btnNext && activeEl !== btnSave && activeEl !== btnCancel && activeEl !== btnBack) return;
+                
+                e.preventDefault();
+                if (btnNext.style.display !== "none") btnNext.click();
+                else if (btnSave.style.display !== "none") btnSave.click();
+            }
+        };
+        document.addEventListener("keydown", handleKeyDown);
+
+        const cleanup = () => {
+            modal.style.display = "none";
+            btnNext.onclick = null;
+            btnBack.onclick = null;
+            btnSave.onclick = null;
+            btnCancel.onclick = null;
+            selectId.onchange = null;
+            selectParent.onchange = null;
+            columnsList.removeEventListener("dragover", handleDragOver);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+
+        btnSave.onclick = () => { cleanup(); resolve(finalData); };
+        btnCancel.onclick = () => { cleanup(); resolve(null); };
+
+        modal.style.display = "flex";
+        showStep();
+    });
+}
+
+export async function executeNewTableCapture(defaultWorkspace: string = "Public", defaultTableName: string = "") {
   const status = document.getElementById("status-text");
   try {
     await Excel.run(async (context) => {
-      if (!dataName || dataName.trim() === "") {
-        throw new Error("Please enter a data table name.");
-      }
 
       const range = context.workbook.getSelectedRange();
       range.load(["values", "formulas", "columnIndex"]);
@@ -1665,7 +2877,7 @@ export async function loadRangeForCapture(dataName: string, familyName: string, 
       const values = range.values;
       const formulas = range.formulas;
       if (values.length < 2) {
-        throw new Error("Select a range with headers and data.");
+        throw new Error(t("select_range_for_table_creation"));
       }
 
       let detectedFormulas: { header: string, formula: string }[] = [];
@@ -1677,64 +2889,64 @@ export async function loadRangeForCapture(dataName: string, familyName: string, 
           });
       }
 
-          const summary = await customDataSummaryPrompt(
-              "Capture New Table",
-              `Review and map columns for '${dataName}' (${values.length - 1} rows detected).`,
-              values[0],
-              values.slice(1)
-          );
-      if (!summary) return;
+      const storedData = await idbGet(IDB_KEYS.STORE);
+      const store: Store = storedData ? JSON.parse(storedData) : {};
+      const allTableKeys = Object.keys(store);
 
-          let store: Store = {};
-          const existingStore = await idbGet(IDB_KEYS.STORE);
-          if (existingStore) store = JSON.parse(existingStore);
-          
-          let rev = 1;
-          let history = {};
-          let relations: any[] | undefined = undefined;
-          let calculatedFields: Record<string, string> | undefined = undefined;
-          if (store[dataName]) {
-              rev = store[dataName].revision || 1;
-              history = store[dataName].history || {};
-              relations = store[dataName].relations;
-              calculatedFields = store[dataName].calculatedFields;
-          }
+      let wsOrderRaw = await idbGet(IDB_KEYS.WORKSPACES_ORDER);
+      let wsOrder: string[] = wsOrderRaw ? JSON.parse(wsOrderRaw) : [];
+      const familiesSet = new Set<string>(wsOrder);
+      allTableKeys.forEach(k => familiesSet.add(store[k].family || 'Public'));
+      const workspaces = Array.from(familiesSet);
+      if (!workspaces.includes("Public")) workspaces.push("Public");
 
-          store[dataName] = {
-              dataTableName: dataName,
-              family: familyName,
-              idField: summary.idField,
-              revision: rev,
-              history: history,
-              fields: summary.fields,
-              records: summary.records
-          };
-          if (relations) store[dataName].relations = relations;
-          if (calculatedFields) store[dataName].calculatedFields = calculatedFields;
+      const wizardResult = await customTableWizardPrompt(
+          values[0],
+          values.slice(1),
+          workspaces,
+          allTableKeys,
+          defaultWorkspace,
+          defaultTableName
+      );
 
-          await applyCalculatedFields(store[dataName].records, store[dataName].fields, store[dataName].calculatedFields, store, dataName);
+      if (!wizardResult) return; // User cancelled
 
+      const dataName = wizardResult.tableName;
+      
+      let rev = 1;
+      store[dataName] = {
+          dataTableName: dataName,
+          family: wizardResult.workspace,
+          idField: wizardResult.idField,
+          revision: rev,
+          history: {},
+          fields: wizardResult.fields,
+          records: wizardResult.records
+      };
+
+      // Apply calculation logic to initialize them structurally if necessary
+      await applyCalculatedFields(store[dataName].records, store[dataName].fields, store[dataName].calculatedFields, store, dataName);
+
+      await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
+      if (status) { status.innerText = t("saved_records_in_table", wizardResult.records.length, dataName); status.style.color = "green"; }
+
+      // Add relationship if parent table was selected
+      if (wizardResult.parentTable && store[wizardResult.parentTable]) {
+          const pName = wizardResult.parentTable;
+          store[pName].relations = store[pName].relations || [];
+          store[pName].relations.push({ subTable: dataName, foreignKey: wizardResult.foreignKey });
           await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
-          if (status) { status.innerText = `Saved ${summary.records.length} records in ${dataName}.`; status.style.color = "green"; }
+      }
 
-          if (parentName && store[parentName]) {
-              const res = await customFormPrompt("Link Sub-table", `Which column in '${dataName}' links to '${parentName}'?`, [
-                  { id: "foreignKey", label: "Link Column", type: "select", options: summary.fields }
-              ]);
-              if (res && res.foreignKey) {
-                  store[parentName].relations = store[parentName].relations || [];
-                  store[parentName].relations.push({ subTable: dataName, foreignKey: res.foreignKey });
-                  await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
-              }
-          }
+      await idbSet(IDB_KEYS.DEFAULT_TABLE, dataName);
+      await idbSet(IDB_KEYS.DEFAULT_REVISION, String(rev));
 
-    await idbSet(IDB_KEYS.DEFAULT_TABLE, dataName);
-    await idbSet(IDB_KEYS.DEFAULT_REVISION, String(rev));
+      // Refresh UI
+      await renderDashboard();
+      await refreshFormulas(true);
 
-    await renderDashboard();
-    await refreshFormulas(true);
-
-    if (detectedFormulas.length > 0) {
+      // Post-Wizard Prompt for detected formulas
+      if (detectedFormulas.length > 0) {
             const colLetterToIndex = (letter: string) => {
                 let index = 0;
                 for (let i = 0; i < letter.length; i++) {
@@ -1751,8 +2963,8 @@ export async function loadRangeForCapture(dataName: string, familyName: string, 
                     if (colMatch) {
                         const colIdx = colLetterToIndex(colMatch[0].toUpperCase());
                         const relativeIdx = colIdx - colStartIndex;
-                        if (relativeIdx >= 0 && relativeIdx < summary.fields.length) {
-                            return `[${summary.fields[relativeIdx]}]`;
+                        if (relativeIdx >= 0 && relativeIdx < wizardResult.fields.length) {
+                            return `[${wizardResult.fields[relativeIdx]}]`;
                         }
                     }
                     return match;
@@ -1767,12 +2979,12 @@ export async function loadRangeForCapture(dataName: string, familyName: string, 
                 id: df.header,
                 label: `${df.header} (Detected: ${mappedCalcs[df.header].excel})`,
                 type: 'formula',
-                fieldsList: summary.fields,
+                fieldsList: wizardResult.fields,
                 tablesWithFields: tablesWithFields,
                 value: mappedCalcs[df.header].dc
             }));
             
-            const reviewRes = await customFormPrompt("Review Detected Formulas", "We converted your Excel formulas. Adjust them below using the visual formula builder, or clear the text to skip:", reviewFields, "Save Formulas");
+            const reviewRes = await customFormPrompt(t("review_formulas_title"), t("review_formulas_msg"), reviewFields, t("save_formulas"));
             
             if (reviewRes) {
                 let finalCalcs: Record<string, string> = {};
@@ -1788,7 +3000,7 @@ export async function loadRangeForCapture(dataName: string, familyName: string, 
                     showStatus(`Mapped formulas for: ${Object.keys(finalCalcs).join(", ")}`, "success");
                 }
             }
-    }
+      }
     });
   } catch (error: any) {
     showStatus(error.message, "error");
@@ -1805,7 +3017,7 @@ export async function replaceTableData(dataTableName: string) {
 
       const values = range.values;
       if (values.length < 2) {
-        throw new Error("Select a range with headers and data.");
+        throw new Error(t("select_range_with_headers_and_data"));
       }
 
       const headers = values[0];
@@ -1818,7 +3030,7 @@ export async function replaceTableData(dataTableName: string) {
       }
 
       if (!store[dataTableName]) {
-        throw new Error(`Data table '${dataTableName}' not found.`);
+        throw new Error(t("data_table_not_found_error", dataTableName));
       }
 
       const dataSet = store[dataTableName];
@@ -1837,8 +3049,8 @@ export async function replaceTableData(dataTableName: string) {
       const existingIdField = targetDataSet.idField || dataSet.idField || dataSet.fields[0];
 
       const summary = await customDataSummaryPrompt(
-          "Replace Version",
-          `Review replacing data for '${dataTableName}' (${values.length - 1} rows detected).`,
+          t("replace_ver_title"),
+          t("replace_ver_msg", dataTableName, values.length - 1),
           values[0],
           values.slice(1),
           existingIdField
@@ -1854,14 +3066,14 @@ export async function replaceTableData(dataTableName: string) {
       await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
       
       if (status) {
-        status.innerText = isLatest ? `Replaced '${dataTableName}' with ${summary.records.length} new records. (ID: "${summary.idField}")` : `Replaced Rev ${selectedRev} of '${dataTableName}' with ${summary.records.length} records.`;
+        status.innerText = isLatest ? t("replaced_table_with_records", dataTableName, summary.records.length, summary.idField) : t("replaced_rev_of_table_with_records", selectedRev, dataTableName, summary.records.length);
         status.style.color = "green";
       }
       await renderDashboard();
       await refreshFormulas(true);
     });
   } catch (error: any) {
-    showStatus("Error replacing data: " + error.message, "error");
+    showStatus(t("error_replacing_data") + error.message, "error");
   }
 }
 
@@ -1875,7 +3087,7 @@ export async function captureNewRevision(dataTableName: string) {
 
       const values = range.values;
       if (values.length < 2) {
-        throw new Error("Select a range with headers and data.");
+        throw new Error(t("select_range_with_headers_and_data"));
       }
 
       const headers = values[0];
@@ -1888,15 +3100,15 @@ export async function captureNewRevision(dataTableName: string) {
       }
 
       if (!store[dataTableName]) {
-        throw new Error(`Data table '${dataTableName}' not found.`);
+        throw new Error(t("data_table_not_found_error", dataTableName));
       }
 
       const dataSet = store[dataTableName];
       const existingIdField = dataSet.idField || dataSet.fields[0];
 
       const summary = await customDataSummaryPrompt(
-          "Capture New Revision",
-          `Review data for new revision of '${dataTableName}' (${values.length - 1} rows detected).`,
+          t("capture_rev_title"),
+          t("capture_rev_msg", dataTableName, values.length - 1),
           values[0],
           values.slice(1),
           existingIdField
@@ -1924,12 +3136,12 @@ export async function captureNewRevision(dataTableName: string) {
           await idbSet(IDB_KEYS.DEFAULT_REVISION, String(dataSet.revision));
       }
       
-      if (status) { status.innerText = `Captured Rev ${dataSet.revision} for '${dataTableName}' with ${dataRows.length} records.`; status.style.color = "green"; }
+      if (status) { status.innerText = t("captured_rev_for_table", dataSet.revision, dataTableName, dataRows.length); status.style.color = "green"; }
       await renderDashboard();
       await refreshFormulas(true);
     });
   } catch (error: any) {
-    showStatus("Error capturing new revision: " + error.message, "error");
+    showStatus(t("error_capturing_new_revision") + error.message, "error");
   }
 }
 
@@ -1937,13 +3149,12 @@ export async function renderDashboard() {
   const list = document.getElementById("workspaces-container");
   if (!list) return;
   
-  list.innerHTML = "";
   const storedData = await idbGet(IDB_KEYS.STORE);
   const defaultSelect = document.getElementById("default-data-table-select") as HTMLSelectElement;
   const defaultRevSelect = document.getElementById("default-revision-select") as HTMLSelectElement;
 
   if (!storedData) {
-    list.innerHTML = "<div style='font-size: 12px; color: #666; padding: 8px;'>No data tables stored yet.</div>";
+    list.innerHTML = `<div style='font-size: 12px; color: #666; padding: 8px;'>${t("no_tables")}</div>`;
     if (defaultSelect) defaultSelect.innerHTML = "";
     if (defaultRevSelect) defaultRevSelect.innerHTML = "";
     return;
@@ -1953,25 +3164,25 @@ export async function renderDashboard() {
   let needsSave = false;
 
   // Cleanup: migrate old single-data-table format if present
-  if (store.collectionName && typeof store.collectionName === "string") {
-    const oldName = store.collectionName;
+  if ((store as any).collectionName && typeof (store as any).collectionName === "string") {
+    const oldName = (store as any).collectionName;
     if (!store[oldName]) {
       store[oldName] = {
-        dataTableName: store.collectionName,
-        fields: store.fields,
-        records: store.records
-      };
+        dataTableName: (store as any).collectionName,
+        fields: (store as any).fields,
+        records: (store as any).records
+      } as any;
     }
-    delete store.collectionName;
-    delete store.entityName;
-    delete store.fields;
-    delete store.records;
+    delete (store as any).collectionName;
+    delete (store as any).entityName;
+    delete (store as any).fields;
+    delete (store as any).records;
     needsSave = true;
   }
 
   // Remove any remaining invalid keys
   for (const key of Object.keys(store)) {
-    if (!store[key] || typeof store[key] !== "object" || Array.isArray(store[key])) {
+    if (!store[key] || typeof (store as any)[key] !== "object" || Array.isArray(store[key])) {
       delete store[key];
       needsSave = true;
     } else if (!store[key].idField && store[key].fields && store[key].fields.length > 0) {
@@ -2005,8 +3216,11 @@ export async function renderDashboard() {
     await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
   }
 
-  if (keys.length === 0) {
-    list.innerHTML = "<div style='font-size: 12px; color: #666; padding: 8px;'>No data tables stored yet.</div>";
+  let wsOrderRaw = await idbGet(IDB_KEYS.WORKSPACES_ORDER);
+  let wsOrder: string[] = wsOrderRaw ? JSON.parse(wsOrderRaw) : [];
+
+  if (keys.length === 0 && wsOrder.length === 0) {
+    list.innerHTML = `<div style='font-size: 12px; color: #666; padding: 8px;'>${t("no_workspaces")}</div>`;
     if (defaultSelect) defaultSelect.innerHTML = "";
     if (defaultRevSelect) defaultRevSelect.innerHTML = "";
     return;
@@ -2014,6 +3228,8 @@ export async function renderDashboard() {
 
   // Setup Default Data Table dropdown
   if (defaultSelect) {
+    let currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
+
     defaultSelect.innerHTML = "";
 
     keys.forEach(key => {
@@ -2023,16 +3239,22 @@ export async function renderDashboard() {
       defaultSelect.appendChild(opt);
     });
     
-    let currentDefault = await idbGet(IDB_KEYS.DEFAULT_TABLE);
     if (!currentDefault || !keys.includes(currentDefault)) {
-      currentDefault = keys[0];
-      await idbSet(IDB_KEYS.DEFAULT_TABLE, currentDefault);
+      currentDefault = keys.length > 0 ? keys[0] : "";
+      if (currentDefault) {
+          await idbSet(IDB_KEYS.DEFAULT_TABLE, currentDefault);
+      } else {
+          await idbSet(IDB_KEYS.DEFAULT_TABLE, "");
+      }
     }
-    defaultSelect.value = currentDefault;
+    if (currentDefault) defaultSelect.value = currentDefault;
     
     const updateDefaultRevOptions = async (tableName: string) => {
       if (!defaultRevSelect) return;
+      let currentDefaultRev = await idbGet(IDB_KEYS.DEFAULT_REVISION);
+
       defaultRevSelect.innerHTML = "";
+      if (!tableName) return;
       const tData = store[tableName];
       if (tData) {
         const maxRev = tData.revision || 1;
@@ -2040,12 +3262,11 @@ export async function renderDashboard() {
           if (i === maxRev || (tData.history && tData.history[i])) {
             const opt = document.createElement("option");
             opt.value = String(i);
-            opt.text = `Rev ${i}${i === maxRev ? " (Latest)" : ""}`;
+            opt.text = t("rev_latest_history", i, i === maxRev ? t("rev_latest_suffix") : "");
             defaultRevSelect.appendChild(opt);
           }
         }
       }
-      let currentDefaultRev = await idbGet(IDB_KEYS.DEFAULT_REVISION);
       if (currentDefaultRev && Array.from(defaultRevSelect.options).some(o => o.value === currentDefaultRev)) {
         defaultRevSelect.value = currentDefaultRev;
       } else {
@@ -2087,7 +3308,7 @@ export async function renderDashboard() {
   // Populate Capture Parent Select
   const captureParentSelect = document.getElementById("data-parent") as HTMLSelectElement;
   if (captureParentSelect) {
-      captureParentSelect.innerHTML = `<option value="">-- None --</option>`;
+      captureParentSelect.innerHTML = `<option value="">${t("manage_rel_none")}</option>`;
       keys.forEach(key => {
           const opt = document.createElement("option");
           opt.value = key;
@@ -2103,9 +3324,6 @@ export async function renderDashboard() {
      families[fam].push(key);
   });
 
-  let wsOrderRaw = await idbGet(IDB_KEYS.WORKSPACES_ORDER);
-  let wsOrder: string[] = wsOrderRaw ? JSON.parse(wsOrderRaw) : [];
-  
   const orderedFamilies: string[] = [];
   wsOrder.forEach(f => {
       if (families[f] || wsOrder.includes(f)) orderedFamilies.push(f);
@@ -2121,7 +3339,7 @@ export async function renderDashboard() {
   const familyList = document.getElementById("family-list") as HTMLDataListElement;
   if (familyList) {
       familyList.innerHTML = "";
-      Object.keys(families).forEach(fam => {
+      orderedFamilies.forEach(fam => {
           const opt = document.createElement("option");
           opt.value = fam;
           familyList.appendChild(opt);
@@ -2159,13 +3377,13 @@ export async function renderDashboard() {
               li.style.borderRadius = "4px";
   
               li.innerHTML = `
-                  <div style="flex:1; min-width: 0; margin-right: 8px;">
+                  <div style="flex:1; min-width: 0; margin-inline-end: 8px;">
                       <div style="font-weight:bold; font-size:13px; color:var(--primary-color); margin-bottom: 2px;">
                           <i class="ms-Icon ms-Icon--Table"></i> ${rel.main} 
                           <i class="ms-Icon ms-Icon--Forward" style="font-size:10px; margin:0 4px;"></i> 
                           <i class="ms-Icon ms-Icon--Table"></i> ${rel.sub}
                       </div>
-                      <div style="font-size:11px; color:var(--text-color); opacity:0.8;">Link Column: ${rel.fk}</div>
+                      <div style="font-size:11px; color:var(--text-color); opacity:0.8;">${t("link_column")}: ${rel.fk}</div>
                   </div>
               `;
   
@@ -2177,17 +3395,17 @@ export async function renderDashboard() {
               const openBtn = document.createElement("button");
               openBtn.className = "icon-btn";
               openBtn.style.color = "#0078d4";
-              openBtn.title = "Open Split Editor";
+              openBtn.title = t("open_split_editor_btn");
               openBtn.innerHTML = '<i class="ms-Icon ms-Icon--SplitObject"></i>';
               openBtn.onclick = () => openRelationEditor(rel.main, rel.sub, rel.fk);
   
               const deleteBtn = document.createElement("button");
               deleteBtn.className = "icon-btn";
               deleteBtn.style.color = "#d13438";
-              deleteBtn.title = "Delete Link";
+              deleteBtn.title = t("delete_link_btn");
               deleteBtn.innerHTML = '<i class="ms-Icon ms-Icon--Delete"></i>';
               deleteBtn.onclick = async () => {
-                  const confirm = await customConfirm("Delete Link", `Are you sure you want to permanently remove the link between '${rel.main}' and '${rel.sub}'?`);
+                  const confirm = await customConfirm(t("delete_link_title"), t("delete_link_msg", rel.main, rel.sub), t("yes_delete_btn"));
                   if (!confirm) return;
                   const storedData = await idbGet(IDB_KEYS.STORE);
                   if (storedData) {
@@ -2196,7 +3414,7 @@ export async function renderDashboard() {
                           store[rel.main].relations = store[rel.main].relations.filter((r: any) => r.subTable !== rel.sub || r.foreignKey !== rel.fk);
                           await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
                           renderDashboard();
-                          showStatus("Link removed successfully.", "success");
+                          showStatus(t("link_removed_success"), "success");
                       }
                   }
               };
@@ -2207,7 +3425,7 @@ export async function renderDashboard() {
               relList.appendChild(li);
           });
       } else {
-          relList.innerHTML = `<li style="font-size: 12px; color: #666;">No relations defined yet.</li>`;
+          relList.innerHTML = `<li style="font-size: 12px; color: #666;">${t("no_relations")}</li>`;
       }
   }
 
@@ -2230,7 +3448,7 @@ export async function renderDashboard() {
     famHeaderContent.style.width = "100%";
 
     const titleSpan = document.createElement("span");
-    titleSpan.innerHTML = `<i class="ms-Icon ms-Icon--FabricFolder" style="margin-right: 8px; color: var(--primary-color);"></i> <span style="font-weight: 600; font-size: 14px;">${fam}</span>`;
+    titleSpan.innerHTML = `<i class="ms-Icon ms-Icon--FabricFolder" style="margin-inline-end: 8px; color: var(--primary-color);"></i> <span style="font-weight: 600; font-size: 14px;">${fam}</span>`;
     famHeaderContent.appendChild(titleSpan);
     
     const manageTablesBtn = document.createElement("button");
@@ -2239,7 +3457,7 @@ export async function renderDashboard() {
     manageTablesBtn.style.padding = "0 8px";
     manageTablesBtn.style.height = "24px";
     manageTablesBtn.style.lineHeight = "24px";
-    manageTablesBtn.innerHTML = `<span class="ms-Button-label" style="font-size: 11px;"><i class="ms-Icon ms-Icon--Settings" style="margin-right: 4px;"></i>Tables</span>`;
+    manageTablesBtn.innerHTML = `<span class="ms-Button-label" style="font-size: 11px;"><i class="ms-Icon ms-Icon--Settings" style="margin-inline-end: 4px;"></i>${t("tables_btn")}</span>`;
     manageTablesBtn.onclick = (e) => { e.stopPropagation(); manageWorkspaceTables(fam); };
     famHeaderContent.appendChild(manageTablesBtn);
 
@@ -2280,8 +3498,8 @@ export async function renderDashboard() {
     header.style.borderRadius = "4px";
     header.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <div><i class="ms-Icon ms-Icon--Table" style="margin-right: 8px;"></i> ${key}</div>
-          <div style="font-size:12px; font-weight:normal; opacity:0.8;">Rev ${rev} &bull; ${count} rows</div>
+          <div><i class="ms-Icon ms-Icon--Table" style="margin-inline-end: 8px;"></i> ${key}</div>
+          <div style="font-size:12px; font-weight:normal; opacity:0.8;">${t("rev_count_rows", rev, count)}</div>
       </div>
     `;
     
@@ -2302,7 +3520,7 @@ export async function renderDashboard() {
             btn.style.padding = "8px";
             btn.style.border = "1px solid var(--border-color)";
             btn.style.borderRadius = "4px";
-            btn.style.backgroundColor = "var(--surface-color, #fff)";
+            btn.style.backgroundColor = "var(--card-bg)";
             btn.style.cursor = "pointer";
             btn.style.minHeight = "60px";
             btn.style.textAlign = "center";
@@ -2310,7 +3528,7 @@ export async function renderDashboard() {
             btn.style.transition = "all 0.15s ease-in-out";
             
             btn.onmouseover = () => { btn.style.backgroundColor = "var(--neutral-lighter, #f3f2f1)"; };
-            btn.onmouseout = () => { btn.style.backgroundColor = "var(--surface-color, #fff)"; };
+            btn.onmouseout = () => { btn.style.backgroundColor = "var(--card-bg)"; };
             
             let iconColor = "var(--text-color)";
             if (colorCls === 'primary') iconColor = "#0078d4";
@@ -2321,25 +3539,25 @@ export async function renderDashboard() {
             return btn;
         };
 
-        const insertTableBtn = createGridBtn("Table", "Insert to Sheet", "default", () => insertTable(key));
-        const replaceBtn = createGridBtn("Sync", "Replace Version", "default", () => replaceTableData(key));
-        const appendBtn = createGridBtn("Add", "Append Data", "default", () => appendTableData(key));
-        const snapshotBtn = createGridBtn("Camera", "Snapshot", "primary", () => createSnapshot(key));
-        const deleteVersionBtn = createGridBtn("RemoveEvent", "Del Version", "danger", () => deleteCurrentVersion(key));
-        const deleteBtn = createGridBtn("Delete", "Del Table", "danger", () => deleteDataTable(key));
-        const exportCSVBtn = createGridBtn("Download", "Export CSV", "default", () => exportCSV(key));
-        const insertDropdownBtn = createGridBtn("Dropdown", "Headers Dropdown", "default", () => insertDropdown(key));
-        const editBtn = createGridBtn("Edit", "Form Editor", "primary", () => loadRecordForEdit(key));
-        const gridEditBtn = createGridBtn("GridViewSmall", "Grid Editor", "primary", () => openGridEditor(key));
-        const duplicateRecordBtn = createGridBtn("Copy", "Clone Record", "default", () => duplicateRecordPrompt(key));
-        const editColumnsBtn = createGridBtn("Sort", "Manage Columns", "default", () => manageColumns(key));
-        const moveWorkspaceBtn = createGridBtn("FabricFolder", "Move Workspace", "default", () => moveTableWorkspace(key));
-        const captureRevBtn = createGridBtn("Camera", "New Revision", "primary", () => captureNewRevision(key));
-        const cloneSubBtn = createGridBtn("Copy", "Clone Sub-records", "default", () => cloneSubRecordsPrompt(key));
+        const insertTableBtn = createGridBtn("Table", t("insert_sheet"), "default", () => insertTable(key));
+        const replaceBtn = createGridBtn("Sync", t("replace_version"), "default", () => replaceTableData(key));
+        const appendBtn = createGridBtn("Add", t("append_data"), "default", () => appendTableData(key));
+        const snapshotBtn = createGridBtn("Camera", t("snapshot"), "primary", () => createSnapshot(key));
+        const deleteVersionBtn = createGridBtn("RemoveEvent", t("del_version"), "danger", () => deleteCurrentVersion(key));
+        const deleteBtn = createGridBtn("Delete", t("del_table"), "danger", () => deleteDataTable(key));
+        const exportCSVBtn = createGridBtn("Download", t("export_csv"), "default", () => exportCSV(key));
+        const insertDropdownBtn = createGridBtn("Dropdown", t("headers_dropdown"), "default", () => insertDropdown(key));
+        const editBtn = createGridBtn("Edit", t("form_editor"), "primary", () => loadRecordForEdit(key));
+        const gridEditBtn = createGridBtn("GridViewSmall", t("grid_editor"), "primary", () => openGridEditor(key));
+        const duplicateRecordBtn = createGridBtn("Copy", t("clone_record"), "default", () => duplicateRecordPrompt(key));
+        const editColumnsBtn = createGridBtn("Sort", t("manage_columns"), "default", () => manageColumns(key));
+        const moveWorkspaceBtn = createGridBtn("FabricFolder", t("move_workspace"), "default", () => moveTableWorkspace(key));
+        const captureRevBtn = createGridBtn("Camera", t("new_revision"), "primary", () => captureNewRevision(key));
+        const cloneSubBtn = createGridBtn("Copy", t("clone_sub_records"), "default", () => cloneSubRecordsPrompt(key));
 
         const revSelectContainer = document.createElement("div");
         revSelectContainer.style.marginBottom = "12px";
-        revSelectContainer.innerHTML = `<label style="font-size:12px; font-weight:600; color:var(--text-color); margin-right:8px;">Target Revision:</label>`;
+        revSelectContainer.innerHTML = `<label style="font-size:12px; font-weight:600; color:var(--text-color); margin-inline-end:8px;">${t("target_revision")}</label>`;
 
         const revSelect = document.createElement("select");
         revSelect.id = `fb-rev-${key}`;
@@ -2350,7 +3568,7 @@ export async function renderDashboard() {
           if (i === rev || (dataTable.history && dataTable.history[i])) {
             const opt = document.createElement("option");
             opt.value = String(i);
-            opt.text = `Revision ${i}${i === rev ? " (Latest)" : ""}`;
+            opt.text = t("revision_latest_history", i, i === rev ? t("rev_latest_suffix") : "");
             revSelect.appendChild(opt);
           }
         }
@@ -2365,8 +3583,8 @@ export async function renderDashboard() {
 
         revSelect.onchange = async () => {
           const isLatest = parseInt(revSelect.value) === rev;
-          replaceBtn.innerHTML = `<i class="ms-Icon ms-Icon--Sync" style="font-size: 16px; margin-bottom: 6px; color: var(--text-color);"></i><span style="font-size: 10px; line-height: 1.1; color: var(--text-color); font-weight: 600;">${isLatest ? 'Replace Version' : 'Replace Rev Data'}</span>`;
-          snapshotBtn.innerHTML = `<i class="ms-Icon ms-Icon--${isLatest ? 'Camera' : 'Undo'}" style="font-size: 16px; margin-bottom: 6px; color: #0078d4;"></i><span style="font-size: 10px; line-height: 1.1; color: var(--text-color); font-weight: 600;">${isLatest ? 'Snapshot' : 'Restore as Active'}</span>`;
+          replaceBtn.innerHTML = `<i class="ms-Icon ms-Icon--Sync" style="font-size: 16px; margin-bottom: 6px; color: var(--text-color);"></i><span style="font-size: 10px; line-height: 1.1; color: var(--text-color); font-weight: 600;">${t("replace_version")}</span>`;
+          snapshotBtn.innerHTML = `<i class="ms-Icon ms-Icon--${isLatest ? 'Camera' : 'Undo'}" style="font-size: 16px; margin-bottom: 6px; color: #0078d4;"></i><span style="font-size: 10px; line-height: 1.1; color: var(--text-color); font-weight: 600;">${isLatest ? t("snapshot") : t("snapshot")}</span>`;
 
           if (defaultSelect && defaultSelect.value === key && defaultRevSelect) {
               if (defaultRevSelect.value !== revSelect.value) {
@@ -2413,21 +3631,20 @@ export async function renderDashboard() {
             accordions.push(accObj);
 
             accHeader.onclick = () => {
-                const isHidden = accContent.style.display === "none";
+                console.log(`[Debug] Inner accordion clicked: ${accObj.title}`);
+                const isCurrentlyOpen = accHeader.classList.contains("open");
                 
                 // Collapse all others
                 accordions.forEach(acc => {
                     acc.content.style.display = "none";
                     acc.header.classList.remove("open");
-                    let cColor = "var(--primary-color)";
-                    if (acc.theme === 'danger') cColor = "#d13438";
-                    else if (acc.theme === 'fast') cColor = "#0078d4";
-                    const accIcon = `<span class="icon" style="display:inline-block; width:15px; color: ${cColor};">&#9654;</span>`;
+                    const closedIconColor = acc.theme === 'danger' ? '#d13438' : acc.theme === 'fast' ? '#0078d4' : 'var(--primary-color)';
+                    const accIcon = `<span class="icon" style="display:inline-block; width:15px; color: ${closedIconColor};">&#9654;</span>`;
                     acc.header.innerHTML = `${accIcon}<span>${acc.title}</span>`;
                 });
 
-                // Open if it was hidden
-                if (isHidden) {
+                // If it was closed, open it. (If it was open, it's now closed from the loop above).
+                if (!isCurrentlyOpen) {
                     accContent.style.display = accObj.isGrid ? "grid" : "flex";
                     accHeader.classList.add("open");
                     const openIcon = `<span class="icon" style="display:inline-block; width:15px; color: ${iconColor};">&#9660;</span>`;
@@ -2442,7 +3659,7 @@ export async function renderDashboard() {
             return accContainer;
         };
 
-        const secEdit = buildAccordion("Data Entry & Views", [
+        const secEdit = buildAccordion(t("data_entry_views"), [
             gridEditBtn,
             editBtn,
             insertTableBtn,
@@ -2460,9 +3677,9 @@ export async function renderDashboard() {
             schemaElements.splice(2, 0, cloneSubBtn);
         }
 
-        const secSchema = buildAccordion("Schema & Operations", schemaElements, 'default', false, true);
+        const secSchema = buildAccordion(t("schema_operations"), schemaElements, 'default', false, true);
 
-        const secVersion = buildAccordion("Versioning & Danger Zone", [
+        const secVersion = buildAccordion(t("versioning_danger_zone"), [
             captureRevBtn,
             replaceBtn,
             snapshotBtn,
@@ -2485,7 +3702,7 @@ export async function renderDashboard() {
         emptyMsg.style.fontSize = "12px";
         emptyMsg.style.color = "#666";
         emptyMsg.style.paddingTop = "8px";
-        emptyMsg.innerText = "No tables in this workspace.";
+        emptyMsg.innerText = t("no_tables_in_ws");
         famContent.appendChild(emptyMsg);
     }
   });
@@ -2495,7 +3712,7 @@ export async function renderDashboard() {
 }
 
 export async function deleteDataTable(dataTableName: string) {
-  const confirmed = await customConfirm("Delete Entire Table", `Are you sure you want to permanently delete the table '${dataTableName}' and all its history? This action cannot be undone.`, "Yes, Delete Everything");
+  const confirmed = await customConfirm(t("del_table_title"), t("del_table_msg", dataTableName), t("del_table_confirm"));
   if (!confirmed) return;
 
   const storedData = await idbGet(IDB_KEYS.STORE);
@@ -2524,7 +3741,7 @@ export async function deleteDataTable(dataTableName: string) {
     
     const status = document.getElementById("status-text");
     if (status) {
-        status.innerText = `Deleted entire data table: ${dataTableName}`;
+        status.innerText = t("deleted_entire_data_table", dataTableName);
         status.style.color = "blue";
     }
   }
@@ -2543,8 +3760,8 @@ export async function deleteCurrentVersion(dataTableName: string) {
     const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
     const isLatest = selectedRev === (dataSet.revision || 1);
 
-    const msg = isLatest ? `Are you sure you want to delete the current version of '${dataTableName}' and rollback to the previous revision?` : `Are you sure you want to delete historical Rev ${selectedRev} from '${dataTableName}'?`;
-    const confirmed = await customConfirm("Confirm Deletion", msg, "Yes, Delete");
+    const msg = isLatest ? t("del_version_latest_msg", dataTableName) : t("del_version_hist_msg", selectedRev, dataTableName);
+    const confirmed = await customConfirm(t("del_version_title"), msg, t("del_version_confirm"));
     if (!confirmed) return;
 
     if (isLatest) {
@@ -2558,13 +3775,13 @@ export async function deleteCurrentVersion(dataTableName: string) {
         delete dataSet.history[highestOldRev];
 
         if (status) {
-          status.innerText = `Deleted current version. Rolled back to Rev ${highestOldRev}.`;
+          status.innerText = t("deleted_current_version_rolled_back", highestOldRev);
           status.style.color = "green";
         }
       } else {
         delete store[dataTableName];
         if (status) {
-          status.innerText = `Deleted the only version. Table '${dataTableName}' removed.`;
+          status.innerText = t("deleted_only_version_table_removed", dataTableName);
           status.style.color = "blue";
         }
       }
@@ -2572,7 +3789,7 @@ export async function deleteCurrentVersion(dataTableName: string) {
       if (dataSet.history && dataSet.history[selectedRev]) {
         delete dataSet.history[selectedRev];
         if (status) {
-          status.innerText = `Deleted historical Rev ${selectedRev} from '${dataTableName}'.`;
+          status.innerText = t("deleted_historical_rev", selectedRev, dataTableName);
           status.style.color = "green";
         }
       }
@@ -2591,7 +3808,7 @@ export async function deleteCurrentVersion(dataTableName: string) {
     renderDashboard();
     refreshFormulas(true);
   } catch (error: any) {
-    showStatus("Error deleting version: " + error.message, "error");
+    showStatus(t("error_deleting_version") + error.message, "error");
   }
 }
 
@@ -2623,7 +3840,7 @@ export async function createSnapshot(dataTableName: string) {
       dataSet.revision = currentRev + 1;
 
       if (status) {
-          status.innerText = `Locked Rev ${currentRev}. Current is now Rev ${dataSet.revision}`;
+          status.innerText = t("locked_rev_current_is", currentRev, dataSet.revision);
           status.style.color = "green";
       }
     } else {
@@ -2639,7 +3856,7 @@ export async function createSnapshot(dataTableName: string) {
       dataSet.revision = currentRev + 1;
 
       if (status) {
-          status.innerText = `Restored Rev ${selectedRev} as new active Rev ${dataSet.revision}.`;
+          status.innerText = t("restored_rev_as_new_active", selectedRev, dataSet.revision);
           status.style.color = "green";
       }
     }
@@ -2655,9 +3872,9 @@ export async function createSnapshot(dataTableName: string) {
     if (!isLatest) refreshFormulas(true);
   } catch (error: any) {
     if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
-        showStatus("Storage limit reached! Please use 'Clear History' or delete tables to free up space.", "error");
+        showStatus(t("storage_limit_reached"), "error");
     } else {
-        showStatus("Error creating snapshot: " + error.message, "error");
+        showStatus(t("error_creating_snapshot") + error.message, "error");
     }
   }
 }
@@ -2676,7 +3893,7 @@ export async function manageColumns(dataTableName: string) {
     const isLatest = selectedRev === (dataSet.revision || 1);
 
     if (!isLatest) {
-      if (status) { status.innerText = "Cannot resort columns of a historical revision."; status.style.color = "red"; }
+      if (status) { status.innerText = t("cannot_resort_historical_revision"); status.style.color = "red"; }
       return;
     }
 
@@ -2687,7 +3904,7 @@ export async function manageColumns(dataTableName: string) {
     Object.keys(store).forEach(t => tablesWithFields[t] = store[t].fields || []);
 
     const idField = dataSet.idField || dataSet.fields[0];
-    const promptResult = await customManageColumnsPrompt("Edit Columns", `Drag to reorder, add new columns, rename them, or attach Calculated Formulas.`, dataSet.fields, idField, dataSet.calculatedFields || {}, varNames, tablesWithFields);
+    const promptResult = await customManageColumnsPrompt(t("edit_cols_title"), t("edit_cols_msg"), dataSet.fields, idField, dataSet.calculatedFields || {}, varNames, tablesWithFields);
     
     if (!promptResult) return; // User cancelled
 
@@ -2697,7 +3914,7 @@ export async function manageColumns(dataTableName: string) {
     // Check for duplicates
     const uniqueFields = new Set(newFields);
     if (uniqueFields.size !== newFields.length) {
-        if (status) { status.innerText = "Column names must be unique."; status.style.color = "red"; }
+        if (status) { status.innerText = t("column_names_must_be_unique"); status.style.color = "red"; }
         return;
     }
 
@@ -2762,11 +3979,11 @@ export async function manageColumns(dataTableName: string) {
     refreshFormulas(true);
     
     if (status) {
-      status.innerText = `Columns updated successfully. Current is Rev ${dataSet.revision}.`;
+      status.innerText = t("columns_updated_successfully", dataSet.revision);
       status.style.color = "green";
     }
   } catch (error: any) {
-    showStatus("Error: " + error.message, "error");
+    showStatus(t("error_general") + error.message, "error");
   }
 }
 
@@ -2790,13 +4007,13 @@ export async function loadRecordForEdit(dataTableName: string) {
     const idField = targetDataSet.idField || dataSet.idField || targetDataSet.fields[0];
     const allIds = targetDataSet.records.map((r: any) => String(r.__DC_ID__));
 
-    const id = await customPrompt("Edit Record", `Enter the Record ID to edit in '${dataTableName}':`, "", allIds);
+    const id = await customPrompt(t("edit_record_title"), t("edit_record_msg", dataTableName), "", allIds);
     if (!id || id.trim() === "") return;
 
     const record = targetDataSet.records.find((r: any) => String(r.__DC_ID__) === String(id));
 
     if (!record) {
-        if (status) { status.innerText = `Record '${id}' not found.`; status.style.color = "red"; }
+        if (status) { status.innerText = t("record_not_found_error", id); status.style.color = "red"; }
         return;
     }
 
@@ -2811,7 +4028,7 @@ export async function loadRecordForEdit(dataTableName: string) {
         };
     });
 
-    const editResult = await customFormPrompt(`Editing Record: ${id}`, "Update the values below:", formFields);
+    const editResult = await customFormPrompt(t("edit_record_title_with_id", id), t("edit_record_update_msg"), formFields);
     if (!editResult) return;
 
     const recordIndex = targetDataSet.records.findIndex((r: any) => String(r.__DC_ID__) === String(id));
@@ -2833,16 +4050,16 @@ export async function loadRecordForEdit(dataTableName: string) {
     await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
 
     if (status) {
-        status.innerText = `Record updated. Refreshing Excel...`;
+        status.innerText = t("record_updated_refreshing_excel");
         status.style.color = "green";
     }
 
     await refreshFormulas(true);
   } catch (error: any) {
     if (error.name === "QuotaExceededError" || (error.message && error.message.includes("exceeded the quota"))) {
-        showStatus("Storage limit reached! Cannot save changes until you clear some space.", "error");
+        showStatus(t("storage_limit_reached_cannot_save"), "error");
     } else {
-        showStatus("Error saving changes: " + error.message, "error");
+        showStatus(t("error_saving_changes") + error.message, "error");
     }
   }
 }
@@ -2851,11 +4068,11 @@ export async function exportCSV(dataTableName: string) {
   const status = document.getElementById("status-text");
   try {
     const storedData = await idbGet(IDB_KEYS.STORE);
-    if (!storedData) throw new Error("No data found.");
+    if (!storedData) throw new Error(t("no_data_found_error"));
 
     const store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
-    if (!dataSet) throw new Error("Data table not found.");
+    if (!dataSet) throw new Error(t("data_table_not_found_error", dataTableName));
 
     const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
     const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
@@ -2866,24 +4083,24 @@ export async function exportCSV(dataTableName: string) {
     }
 
     if (!targetDataSet || !targetDataSet.fields || !targetDataSet.records) {
-      throw new Error("No data found for this revision.");
+      throw new Error(t("no_data_found_for_revision_error"));
     }
 
     await exportCSVData(dataTableName, selectedRev, targetDataSet);
 
     if (status) {
-      status.innerText = `Exported ${dataTableName} (Rev ${selectedRev}) to CSV.`;
+      status.innerText = t("exported_table_to_csv", dataTableName, selectedRev);
       status.style.color = "green";
     }
   } catch (error: any) {
-    showStatus("Error exporting CSV: " + error.message, "error");
+    showStatus(t("error_exporting_csv") + error.message, "error");
   }
 }
 
 export async function refreshFormulas(silent: boolean = false) {
   const status = document.getElementById("status-text");
   try {
-    if (status && !silent) status.innerText = "Refreshing dashboard & formulas... Please wait.";
+    if (status && !silent) status.innerText = t("refreshing_dashboard_formulas");
 
     if (!silent) {
       await renderDashboard();
@@ -2891,25 +4108,25 @@ export async function refreshFormulas(silent: boolean = false) {
 
     const count = await executeRefreshFormulas();
     if (status && !silent) {
-      status.innerText = `Refreshed dashboard and ${count} DC formulas.`;
+      status.innerText = t("refreshed_dashboard_formulas", count);
       status.style.color = "green";
     }
   } catch (error: any) {
-    if (!silent) showStatus(error.message, "error");
+    if (!silent) showStatus(t("error_general") + error.message, "error");
   }
 }
 
 export async function convertToValues() {
   const status = document.getElementById("status-text");
   try {
-    if (status) status.innerText = "Converting... Please wait.";
+    if (status) status.innerText = t("converting_please_wait");
     const count = await executeConvertToValues();
     if (status) {
-      status.innerText = `Converted ${count} DC formulas to values.`;
+      status.innerText = t("converted_formulas_to_values", count);
       status.style.color = "green";
     }
   } catch (error: any) {
-    showStatus(error.message, "error");
+    showStatus(t("error_general") + error.message, "error");
   }
 }
 
@@ -2919,11 +4136,11 @@ export async function backupData() {
 
     const status = document.getElementById("status-text");
     if (status) {
-      status.innerText = "Backup downloaded successfully.";
+      status.innerText = t("backup_downloaded_successfully");
       status.style.color = "green";
     }
   } catch (error: any) {
-    showStatus("Backup error: " + error.message, "error");
+    showStatus(t("backup_error") + error.message, "error");
   }
 }
 
@@ -2935,11 +4152,11 @@ export async function restoreData(event: any) {
   const status = document.getElementById("status-text");
   try {
     await processRestoreFile(event);
-    if (status) { status.innerText = "Data restored successfully."; status.style.color = "green"; }
+    if (status) { status.innerText = t("data_restored_successfully"); status.style.color = "green"; }
     await renderDashboard();
     await refreshFormulas(true);
   } catch (error: any) {
-    showStatus("Restore error: " + error.message, "error");
+    showStatus(t("restore_error") + error.message, "error");
   }
 }
 
@@ -2949,24 +4166,24 @@ export async function insertDropdown(dataTableName: string) {
     if (!storedData) return;
     const store = JSON.parse(storedData);
     const dataSet = store[dataTableName];
-    if (!dataSet) throw new Error("No data found.");
+    if (!dataSet) throw new Error(t("no_data_found_error"));
     const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
     const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
     let targetDataSet = dataSet;
     if (selectedRev !== (dataSet.revision || 1) && dataSet.history && dataSet.history[selectedRev]) {
       targetDataSet = dataSet.history[selectedRev];
     }
-    if (!targetDataSet || !targetDataSet.fields) throw new Error("No headers found.");
+    if (!targetDataSet || !targetDataSet.fields) throw new Error(t("no_headers_found_error"));
 
     await executeInsertDropdown(targetDataSet.fields);
     const status = document.getElementById("status-text");
     if (status) {
-      status.innerText = `Inserted headers dropdown for ${dataTableName}`;
+      status.innerText = t("inserted_headers_dropdown", dataTableName);
       status.style.color = "green";
     }
   } catch (error: any) {
     console.error(error);
-    showStatus("Error inserting dropdown: " + error.message, "error");
+    showStatus(t("error_inserting_dropdown") + error.message, "error");
   }
 }
 
@@ -2983,12 +4200,12 @@ export async function insertTable(dataTableName: string) {
       targetDataSet = dataSet.history[selectedRev];
     }
     if (!targetDataSet || !targetDataSet.fields || !targetDataSet.records || targetDataSet.records.length === 0) {
-      throw new Error("No data found for this data table.");
+      throw new Error(t("no_data_found_for_table_error"));
     }
 
-    const res = await customFormPrompt("Insert Table", "Select columns to insert:", [
-        { id: "cols", label: "Columns", type: "checkboxes", options: targetDataSet.fields }
-    ], "Insert");
+    const res = await customFormPrompt(t("insert_table_title"), t("select_columns_to_insert"), [
+        { id: "cols", label: t("columns_label"), type: "checkboxes", options: targetDataSet.fields }
+    ], t("insert_table_confirm"));
     if (!res || !res.cols) return;
     const selectedCols = res.cols.split(",");
     const filteredRecords = targetDataSet.records.map((r: any) => {
@@ -3016,6 +4233,7 @@ export async function insertTable(dataTableName: string) {
         const table = context.workbook.tables.add(fullRange, true);
         table.name = `DCTable_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         table.style = "TableStyleLight1";
+        table.showBandedRows = false;
         await context.sync();
         
         if (rows.length > 0) {
@@ -3025,18 +4243,18 @@ export async function insertTable(dataTableName: string) {
             } catch (e: any) {
                 table.getDataBodyRange().values = rows.map(r => r.map((c: any) => typeof c === 'string' && c.startsWith('=') ? `'${c}` : c));
                 await context.sync();
-                throw new Error("Some formulas contained Javascript syntax not supported by Excel and were inserted as text.");
+                throw new Error(t("excel_formula_js_syntax_error"));
             }
         }
     });
 
     const status = document.getElementById("status-text");
     if (status) {
-       status.innerText = `Inserted table for ${dataTableName}`;
+       status.innerText = t("inserted_table_for", dataTableName);
        status.style.color = "green";
     }
   } catch (error: any) {
-    showStatus("Error inserting table: " + error.message, "error");
+    showStatus(t("error_inserting_table") + error.message, "error");
   }
 }
 
@@ -3054,7 +4272,7 @@ export async function handleSheetActivation(event: Excel.WorksheetActivatedEvent
 
             if (!purposeProp.isNullObject && (purposeProp.value === "SubDataEditor" || purposeProp.value === "MainDataEditor")) {
                 const isLive = !mainTableProp.isNullObject && mainTableProp.value !== "";
-                showEditorView(!tableProp.isNullObject ? tableProp.value : "Unknown", isLive || purposeProp.value === "MainDataEditor");
+                showEditorView(!tableProp.isNullObject ? tableProp.value : t("unknown_table_name"), isLive || purposeProp.value === "MainDataEditor");
             } else {
                 hideEditorView();
             }
@@ -3072,7 +4290,9 @@ export function showEditorView(tableName: string, isLiveSync: boolean = false) {
     const nameEl = document.getElementById("editor-table-name");
     if (nameEl) nameEl.innerText = tableName;
     const indicator = document.getElementById("live-sync-indicator");
-    if (indicator) indicator.style.display = isLiveSync ? "block" : "none";
+    if (indicator) { indicator.style.display = isLiveSync ? "block" : "none"; }
+    
+    applyTranslations(); // Trigger translations to format Editor mode correctly upon rendering
 }
 
 export function hideEditorView() {
@@ -3087,10 +4307,10 @@ export function hideEditorView() {
 export async function openRelationEditor(mainTableName: string, subTableName: string, foreignKey: string) {
     const status = document.getElementById("status-text");
     try {
-        if (status) { status.innerText = `Loading Split Editor...`; status.style.color = "blue"; }
+        if (status) { status.innerText = t("loading_split_editor"); status.style.color = "blue"; }
         const saved = await saveGridEditor(false); // ensure any open editor saves
         if (!saved) {
-             showStatus("Please fix the errors in your current editor before opening a new one.", "error");
+             showStatus(t("fix_errors_before_new_editor"), "error");
              return;
         }
         
@@ -3116,7 +4336,7 @@ export async function openRelationEditor(mainTableName: string, subTableName: st
         }
 
         const idField = targetMainData.idField || targetMainData.fields[0];
-        const firstId = targetMainData.records && targetMainData.records.length > 0 ? targetMainData.records[0][idField] : "NEW";
+        const firstId = targetMainData.records && targetMainData.records.length > 0 ? targetMainData.records[0][idField] : t("new_record_id_placeholder");
 
         await Excel.run(async (context) => {
             context.application.suspendApiCalculationUntilNextSync();
@@ -3219,9 +4439,9 @@ export async function openRelationEditor(mainTableName: string, subTableName: st
 
         showEditorView(mainTableName, true);
         
-        showStatus(`Opened Split Editor for ${mainTableName} and ${subTableName}. Arrange windows side-by-side.`, "success");
+        showStatus(t("opened_split_editor_arrange_windows", mainTableName, subTableName), "success");
     } catch (e: any) {
-        showStatus("Error opening split editor: " + e.message, "error");
+        showStatus(t("error_opening_split_editor") + e.message, "error");
     }
 }
 
@@ -3336,11 +4556,11 @@ export async function openGridEditor(dataTableName: string, filterField?: string
         }
         await context.sync();
         
-        const msg = filterField ? `Opened Sub-table (${filterField}: ${filterValue})` : `Opened '${dataTableName}'`;
-        if (status) { status.innerText = `${msg} in Grid Editor.`; status.style.color = "blue"; }
+        const msg = filterField ? t("opened_sub_table_in_editor", filterField, filterValue) : t("opened_table_in_grid_editor", dataTableName);
+        if (status) { status.innerText = msg; status.style.color = "blue"; }
     });
   } catch (error: any) {
-      showStatus("Error opening Grid Editor: " + error.message, "error");
+      showStatus(t("error_opening_grid_editor") + error.message, "error");
   }
 }
 
@@ -3438,8 +4658,8 @@ export async function saveGridEditor(closeEditor: boolean | Event = true, specif
                 }
                 
                 const val = String(row[idIndex]).trim();
-                if (!val || val.trim() === "") throw new Error(`Row ${i + 1} has an empty ID in ${dataTableName}.`);
-                if (idSet.has(val)) throw new Error(`Duplicate ID found: '${val}' in ${dataTableName}.`);
+                if (!val || val.trim() === "") throw new Error(t("row_has_empty_id_in_table_error", i + 1, dataTableName));
+                if (idSet.has(val)) throw new Error(t("duplicate_id_found_in_table_error", val, dataTableName));
                 idSet.add(val);
                 
                 const existingRecord = targetDataSet.records.find((r: any) => String(r[idField]).trim() === val);
@@ -3521,10 +4741,10 @@ export async function saveGridEditor(closeEditor: boolean | Event = true, specif
         
         if (status) { 
             if (storeHasChanges) {
-                status.innerText = `Saved ${savedCount} records.`; 
+                status.innerText = t("saved_records", savedCount);
                 status.style.color = "green"; 
             } else {
-                if (!shouldClose) status.innerText = `No changes detected.`; 
+                if (!shouldClose) status.innerText = t("no_changes_detected");
             }
         }
         
@@ -3532,7 +4752,7 @@ export async function saveGridEditor(closeEditor: boolean | Event = true, specif
     });
     return true;
   } catch (error: any) { 
-      showStatus("Error saving Grid Editor: " + error.message, "error"); 
+      showStatus(t("error_saving_grid_editor") + error.message, "error");
       return false;
   }
 }
@@ -3540,7 +4760,7 @@ export async function saveGridEditor(closeEditor: boolean | Event = true, specif
 export async function switchGridEditorRecord(newId: string, foreignKey: string, targetTable: string, selectedColumns: string[], subSheetName: string = "DC_Grid_Editor", mainTableName: string = "") {
     const status = document.getElementById("status-text");
     try {
-        if (status) { status.innerText = `Auto-syncing... Switching to Record ${newId}`; status.style.color = "blue"; }
+        if (status) { status.innerText = t("auto_syncing_switching_to_record", newId); status.style.color = "blue"; }
         const saved = await saveGridEditor(false, subSheetName); // Save ONLY the sub-sheet without closing
         if (!saved) {
             return;
@@ -3549,10 +4769,10 @@ export async function switchGridEditorRecord(newId: string, foreignKey: string, 
         // Recreate the sheet cleanly in the background without stealing focus
         await openGridEditor(targetTable, foreignKey, newId, mainTableName, selectedColumns, subSheetName, "SubDataEditor", false);
 
-        if (status) { status.innerText = `Switched Sub-table to Record ${newId}`; status.style.color = "green"; }
+        if (status) { status.innerText = t("switched_sub_table_to_record", newId); status.style.color = "green"; }
     } catch (error: any) { 
         console.error("[Live Sync] Error switching record:", error);
-        showStatus("Error switching record: " + error.message, "error"); 
+        showStatus(t("error_switching_record") + error.message, "error");
     }
 }
 
@@ -3571,7 +4791,7 @@ export async function cancelGridEditor() {
         await context.sync();
         hideEditorView();
     });
-  } catch (error: any) { showStatus("Error canceling Grid Editor: " + error.message, "error"); }
+  } catch (error: any) { showStatus(t("error_canceling_grid_editor") + error.message, "error"); }
 }
 
 export async function manageRelations(dataTableName: string) {
@@ -3583,30 +4803,30 @@ export async function manageRelations(dataTableName: string) {
     const existingRelations = dataSet.relations || [];
     
     const allTables = Object.keys(store).filter(t => t !== dataTableName);
-    const relationStrings = existingRelations.map((r: any) => `${r.subTable} (Link: ${r.foreignKey})`);
+    const relationStrings = existingRelations.map((r: any) => t("relation_link_suffix", r.subTable, r.foreignKey));
 
     const tablesWithFields: Record<string, string[]> = {};
     allTables.forEach(t => tablesWithFields[t] = store[t].fields || []);
 
     const fields: FormField[] = [];
     if (relationStrings.length > 0) {
-        fields.push({ id: "keepRelations", label: "Existing Relations (Uncheck to remove)", type: "checkboxes", options: relationStrings });
+        fields.push({ id: "keepRelations", label: t("manage_rel_keep"), type: "checkboxes", options: relationStrings });
     }
     
-    fields.push({ id: "newSubTable", label: "Add New: Target Table", type: "select", options: ["-- None --", ...allTables] });
-    fields.push({ id: "newForeignKey", label: "Add New: Link Column", type: "select", options: ["-- None --"], dependsOn: "newSubTable", optionsMap: tablesWithFields });
+    fields.push({ id: "newSubTable", label: t("manage_rel_add_target"), type: "select", options: [t("manage_rel_none"), ...allTables] });
+    fields.push({ id: "newForeignKey", label: t("manage_rel_add_link"), type: "select", options: [t("manage_rel_none")], dependsOn: "newSubTable", optionsMap: tablesWithFields });
 
-    const res = await customFormPrompt("Manage Relations", `Manage relations for '${dataTableName}':`, fields);
+    const res = await customFormPrompt(t("manage_rel_title"), t("manage_rel_manage_msg", dataTableName), fields);
     
     if (!res) return;
 
     let finalRelations: any[] = [];
     if (relationStrings.length > 0 && res.keepRelations !== undefined) {
-        const kept = res.keepRelations.split(",");
-        finalRelations = existingRelations.filter((r: any) => kept.includes(`${r.subTable} (Link: ${r.foreignKey})`));
+        const kept = res.keepRelations.split(",").map((s: string) => s.trim());
+        finalRelations = existingRelations.filter((r: any) => kept.includes(t("relation_link_suffix", r.subTable, r.foreignKey)));
     }
 
-    if (res.newSubTable && res.newSubTable !== "-- None --" && res.newForeignKey && res.newForeignKey.trim() !== "" && res.newForeignKey !== "-- None --") {
+    if (res.newSubTable && res.newSubTable !== t("manage_rel_none") && res.newForeignKey && res.newForeignKey.trim() !== "" && res.newForeignKey !== t("manage_rel_none")) {
         if (!finalRelations.find(r => r.subTable === res.newSubTable)) {
             finalRelations.push({ subTable: res.newSubTable, foreignKey: res.newForeignKey.trim() });
         }
@@ -3616,15 +4836,15 @@ export async function manageRelations(dataTableName: string) {
     
     await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
     renderDashboard();
-    showStatus(`Relations updated for '${dataTableName}'`, "success");
-    if (res.newSubTable && res.newSubTable !== "-- None --" && res.newForeignKey && res.newForeignKey.trim() !== "" && res.newForeignKey !== "-- None --") {
-            const addRollup = await customConfirm("Add Rollup", `Would you like to add a Calculated Field in '${dataTableName}' to summarize data from '${res.newSubTable}'?`, "Yes");
+    showStatus(t("relations_updated_for", dataTableName), "success");
+    if (res.newSubTable && res.newSubTable !== t("manage_rel_none") && res.newForeignKey && res.newForeignKey.trim() !== "" && res.newForeignKey !== t("manage_rel_none")) {
+            const addRollup = await customConfirm(t("add_rollup_title"), t("add_rollup_msg", dataTableName, res.newSubTable), t("yes_btn"));
             if (addRollup) {
                 const subFields = store[res.newSubTable]?.fields || [];
-                const rollupRes = await customFormPrompt("Rollup Field", "Define the rollup:", [
-                    { id: "fieldName", label: "New Field Name (e.g. Total Cost)", type: "text" },
-                    { id: "type", label: "Aggregation Type", type: "select", options: ["SUM", "COUNT"] },
-                    { id: "col", label: "Column to Aggregate (for SUM)", type: "select", options: ["-- None --", ...subFields] }
+                const rollupRes = await customFormPrompt(t("rollup_field_title"), t("define_the_rollup"), [
+                    { id: "fieldName", label: t("rollup_field_name"), type: "text" },
+                    { id: "type", label: t("rollup_type"), type: "select", options: ["SUM", "COUNT"] },
+                    { id: "col", label: t("rollup_col"), type: "select", options: [t("manage_rel_none"), ...subFields] }
                 ]);
                 if (rollupRes && rollupRes.fieldName) {
                     const idField = dataSet.idField || dataSet.fields[0];
@@ -3641,13 +4861,13 @@ export async function manageRelations(dataTableName: string) {
                         await applyCalculatedFields(dataSet.records, dataSet.fields, dataSet.calculatedFields, store, dataTableName);
                         await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
                         renderDashboard();
-                        showStatus(`Added rollup field '${rollupRes.fieldName}'`, "success");
+                        showStatus(t("added_rollup_field", rollupRes.fieldName), "success");
                     }
                 }
             }
         }
 
-  } catch (error: any) { showStatus("Error managing relations: " + error.message, "error"); }
+  } catch (error: any) { showStatus(t("error_managing_relations") + error.message, "error"); }
 }
 
 
@@ -3661,7 +4881,7 @@ export async function appendTableData(dataTableName: string) {
 
       const values = range.values;
       if (values.length < 2) {
-        throw new Error("Select a range with headers and data.");
+        throw new Error(t("select_range_with_headers_and_data"));
       }
 
       let store: Store = {};
@@ -3674,12 +4894,12 @@ export async function appendTableData(dataTableName: string) {
       const revSelect = document.getElementById(`fb-rev-${dataTableName}`) as HTMLSelectElement;
       const selectedRev = revSelect ? parseInt(revSelect.value) : dataSet.revision || 1;
       if (selectedRev !== (dataSet.revision || 1)) {
-          throw new Error("Cannot append data to a historical revision.");
+          throw new Error(t("cannot_append_to_historical_revision"));
       }
 
       const summary = await customDataSummaryPrompt(
-          "Append Data",
-          `Review data to append to '${dataTableName}' (${values.length - 1} rows detected).`,
+          t("append_data_title"),
+          t("review_data_to_append", dataTableName, values.length - 1),
           values[0],
           values.slice(1),
           dataSet.idField || dataSet.fields[0]
@@ -3692,7 +4912,7 @@ export async function appendTableData(dataTableName: string) {
       for (const rec of summary.records) {
           const id = String(rec.__DC_ID__);
           if (existingIds.has(id)) {
-              throw new Error(`Duplicate ID found: '${id}' already exists in '${dataTableName}'.`);
+              throw new Error(t("duplicate_id_already_exists_error", id, dataTableName));
           }
           const finalRec: any = { __DC_ID__: id };
           dataSet.fields.forEach(f => {
@@ -3715,14 +4935,14 @@ export async function appendTableData(dataTableName: string) {
       await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
       
       if (status) {
-        status.innerText = `Appended ${newRecords.length} records. Current is Rev ${dataSet.revision}.`;
+        status.innerText = t("appended_records_current_is", newRecords.length, dataSet.revision);
         status.style.color = "green";
       }
       await renderDashboard();
       await refreshFormulas(true);
     });
   } catch (error: any) {
-    showStatus("Error appending data: " + error.message, "error");
+    showStatus(t("error_appending_data") + error.message, "error");
   }
 }
 
@@ -3733,24 +4953,24 @@ export async function cloneSubRecordsPrompt(mainTableName: string) {
     const store = JSON.parse(storedData);
     const mainDataSet = store[mainTableName];
     if (!mainDataSet || !mainDataSet.relations || mainDataSet.relations.length === 0) {
-        showStatus("No relations defined for this table.", "error");
+        showStatus(t("no_relations_defined_for_table"), "error");
         return;
     }
 
     const allMainIds = mainDataSet.records.map((r: any) => String(r.__DC_ID__));
-    const relationsOptions = mainDataSet.relations.map((r: any) => `${r.subTable} (FK: ${r.foreignKey})`);
+    const relationsOptions = mainDataSet.relations.map((r: any) => t("relation_fk_suffix", r.subTable, r.foreignKey));
 
-    const res1 = await customFormPrompt("Clone Sub-records", `Select the target sub-table to clone:`, [
-        { id: "relation", label: "Sub-table Relation", type: "select", options: relationsOptions }
+    const res1 = await customFormPrompt(t("clone_sub_title"), t("clone_sub_select_target"), [
+        { id: "relation", label: t("clone_sub_relation"), type: "select", options: relationsOptions }
     ]);
     if (!res1 || !res1.relation) return;
 
     const selectedRel = mainDataSet.relations.find((r: any) => res1.relation.includes(r.subTable));
     if (!selectedRel) return;
 
-    const res2 = await customFormPrompt(`Clone from '${selectedRel.subTable}'`, `Select the Source ID and Target ID(s):`, [
-        { id: "sourceId", label: "Source Record ID (Copy FROM)", type: "autocomplete", options: allMainIds },
-        { id: "targetIds", label: "Target Record IDs (Copy TO)", type: "checkboxes", options: allMainIds }
+    const res2 = await customFormPrompt(t("clone_from", selectedRel.subTable), t("clone_select_ids"), [
+        { id: "sourceId", label: t("clone_source_id"), type: "autocomplete", options: allMainIds },
+        { id: "targetIds", label: t("clone_target_ids"), type: "checkboxes", options: allMainIds }
     ]);
     if (!res2 || !res2.sourceId || !res2.targetIds) return;
 
@@ -3762,7 +4982,7 @@ export async function cloneSubRecordsPrompt(mainTableName: string) {
 
     const sourceRecords = subDataSet.records.filter((r: any) => String(r[selectedRel.foreignKey]) === String(res2.sourceId));
     if (sourceRecords.length === 0) {
-        showStatus(`No sub-records found for Source ID '${res2.sourceId}'.`, "error");
+        showStatus(t("no_sub_records_found", res2.sourceId), "error");
         return;
     }
 
@@ -3771,7 +4991,7 @@ export async function cloneSubRecordsPrompt(mainTableName: string) {
         if (tId === res2.sourceId) return; // skip self
         sourceRecords.forEach((sr: any) => {
             const cloned = { ...sr };
-            cloned.__DC_ID__ = `CLONED_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            cloned.__DC_ID__ = `${t("cloned_id_prefix")}${Date.now()}_${Math.floor(Math.random() * 1000)}`;
             cloned[selectedRel.foreignKey] = tId; 
             const idF = subDataSet.idField || subDataSet.fields[0];
             if (idF) cloned[idF] = cloned.__DC_ID__;
@@ -3795,9 +5015,9 @@ export async function cloneSubRecordsPrompt(mainTableName: string) {
     await renderDashboard();
     await refreshFormulas(true);
 
-    showStatus(`Successfully cloned ${sourceRecords.length} sub-records to ${targetIds.length} target(s).`, "success");
+    showStatus(t("successfully_cloned_sub_records", sourceRecords.length, targetIds.length), "success");
   } catch (error: any) {
-    showStatus("Error cloning sub-records: " + error.message, "error");
+    showStatus(t("error_cloning_sub_records") + error.message, "error");
   }
 }
 
@@ -3809,12 +5029,15 @@ export async function moveTableWorkspace(tableName: string) {
         const dataSet = store[tableName];
         if (!dataSet) return;
 
-        const familiesSet = new Set<string>();
+        let wsOrderRaw = await idbGet(IDB_KEYS.WORKSPACES_ORDER);
+        let wsOrder: string[] = wsOrderRaw ? JSON.parse(wsOrderRaw) : [];
+
+        const familiesSet = new Set<string>(wsOrder);
         Object.keys(store).forEach(k => familiesSet.add(store[k].family || 'Public'));
         const familiesList = Array.from(familiesSet);
 
-        const res = await customFormPrompt("Move Workspace", `Select or type a new workspace for '${tableName}':`, [
-            { id: "newWorkspace", label: "Workspace", type: "autocomplete", options: familiesList, value: dataSet.family || 'Public' }
+        const res = await customFormPrompt(t("move_ws_title"), t("select_or_type_new_workspace", tableName), [
+            { id: "newWorkspace", label: t("workspace_label"), type: "autocomplete", options: familiesList, value: dataSet.family || t("public_workspace") }
         ]);
 
         if (!res || !res.newWorkspace || res.newWorkspace.trim() === "") return;
@@ -3824,10 +5047,10 @@ export async function moveTableWorkspace(tableName: string) {
         dataSet.family = newWorkspace;
         await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
         renderDashboard();
-        showStatus(`Moved '${tableName}' to '${newWorkspace}'.`, "success");
+        showStatus(t("moved_table_to_workspace", tableName, newWorkspace), "success");
 
     } catch (error: any) {
-        showStatus("Error moving table: " + error.message, "error");
+        showStatus(t("error_moving_table") + error.message, "error");
     }
 }
 
@@ -3842,26 +5065,26 @@ export async function manageVariable() {
     Object.keys(store).forEach(t => tablesWithFields[t] = store[t].fields || []);
     const allFields = Array.from(new Set(Object.values(store).flatMap((t: any) => t.fields || []))) as string[];
     
-    const res = await customFormPrompt("Add Variable", "Define a global variable:", [
-        { id: "vName", label: "Variable Name", type: "text" },
-        { id: "vFormula", label: "Formula Definition", type: "formula", varsList: varNames, tablesWithFields: tablesWithFields }
+    const res = await customFormPrompt(t("add_var_title"), t("add_var_msg"), [
+        { id: "vName", label: t("add_var_name"), type: "text" },
+        { id: "vFormula", label: t("add_var_formula"), type: "formula", varsList: varNames, tablesWithFields: tablesWithFields }
     ]);
 
     if (res) {
         if (!res.vName || res.vName.trim() === "") {
-            showStatus("Variable Name is required.", "error");
+            showStatus(t("variable_name_required"), "error");
             return;
         }
         if (!res.vFormula || res.vFormula.trim() === "") {
-            showStatus("Formula is required.", "error");
+            showStatus(t("formula_required"), "error");
             return;
         }
         try {
             // Validation Layer: Test compiling and executing the formula
             const evaluateVar = (vName: string, visited: Set<string>): any => {
-                if (visited.has(vName)) throw new Error("Loop Detected");
+                if (visited.has(vName)) throw new Error(t("loop_detected"));
                 visited.add(vName);
-                if (vName === res.vName) throw new Error("Variable cannot reference itself");
+                if (vName === res.vName) throw new Error(t("variable_cannot_reference_itself"));
                 const vForm = variables[vName];
                 if (!vForm) return 0;
                 const vDC = {
@@ -3883,31 +5106,32 @@ export async function manageVariable() {
             variables[res.vName] = res.vFormula;
             await idbSet(IDB_KEYS.VARIABLES, JSON.stringify(variables));
             renderVariables();
-            showStatus(`Variable '${res.vName}' saved.`, "success");
+            showStatus(t("variable_saved", res.vName), "success");
         } catch (error: any) {
-            showStatus(`Invalid Formula for '${res.vName}': ${error.message}`, "error");
+            showStatus(t("invalid_formula_for_variable", res.vName, error.message), "error");
         }
     }
 }
 
 export async function addWorkspace() {
     try {
-        const newName = await customPrompt("Add Workspace", "Enter a name for the new workspace:");
+        const newName = await customPrompt(t("add_ws_title"), t("add_ws_msg"));
         if (!newName || newName.trim() === "") return;
 
-        const storedData = await idbGet(IDB_KEYS.STORE);
-        const store = storedData ? JSON.parse(storedData) : {};
-        const allTableKeys = Object.keys(store);
+        let wsOrderRaw = await idbGet(IDB_KEYS.WORKSPACES_ORDER);
+        let wsOrder: string[] = wsOrderRaw ? JSON.parse(wsOrderRaw) : [];
+        if (!wsOrder.includes(newName)) {
+            wsOrder.push(newName);
+            await idbSet(IDB_KEYS.WORKSPACES_ORDER, JSON.stringify(wsOrder));
+            renderDashboard();
+        }
 
-        const res = await customFormPrompt(`Create First Table`, `Create the first table in the '${newName}' workspace.`, [
-            { id: "tableName", label: "Data Table Name", type: "text" },
-            { id: "parentTable", label: "Parent Table (Optional Link)", type: "select", options: ["-- None --", ...allTableKeys] }
-        ]);
-        if (res && res.tableName) {
-            await loadRangeForCapture(res.tableName, newName, res.parentTable === "-- None --" ? "" : res.parentTable);
+        const res = await customConfirm(t("add_ws_added_title"), t("add_ws_added_msg", newName), t("add_ws_capture_btn"));
+        if (res) {
+            await executeNewTableCapture(newName);
         }
     } catch (error: any) {
-        showStatus("Error adding workspace: " + error.message, "error");
+        showStatus(t("error_adding_workspace") + error.message, "error");
     }
 }
 
@@ -3916,13 +5140,12 @@ export async function renderVariables() {
     const variables = vStoreRaw ? JSON.parse(vStoreRaw) : {};
     const list = document.getElementById("variables-list");
     if (!list) return;
-    list.innerHTML = "";
 
     const storedData = await idbGet(IDB_KEYS.STORE);
     const store = storedData ? JSON.parse(storedData) : {};
 
     const evaluateVar = (vName: string, visited: Set<string>): any => {
-        if (visited.has(vName)) throw new Error("Loop Detected");
+        if (visited.has(vName)) throw new Error(t("loop_detected"));
         visited.add(vName);
         const vForm = variables[vName];
         if (!vForm) return 0;
@@ -3935,11 +5158,13 @@ export async function renderVariables() {
         return func(store, DC);
     };
 
+    list.innerHTML = "";
+
     for (const [vName, vFormula] of Object.entries(variables)) {
-        let result: any = "ERROR";
+        let result: any = t("error_text");
         try {
             result = evaluateVar(vName, new Set());
-        } catch(e: any) { result = e.message === "Loop Detected" ? "LOOP ERROR" : "ERROR"; }
+        } catch(e: any) { result = e.message === t("loop_detected") ? t("loop_error") : t("error_text"); }
 
         const li = document.createElement("li");
         li.style.listStyle = "none";
@@ -3952,11 +5177,11 @@ export async function renderVariables() {
         li.style.borderRadius = "4px";
 
         li.innerHTML = `
-            <div style="flex:1; min-width: 0; margin-right: 8px;">
+            <div style="flex:1; min-width: 0; margin-inline-end: 8px;">
                 <div style="font-weight:bold; font-size:13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${vName}">${vName}</div>
                 <div style="font-size:11px; color:var(--text-color); opacity:0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title='${vFormula.replace(/'/g, "&#39;")}'>${vFormula}</div>
             </div>
-            <div style="color:green; font-weight:bold; margin-right: 8px; font-size:14px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;" title="${result}">${result}</div>
+            <div style="color:green; font-weight:bold; margin-inline-end: 8px; font-size:14px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;" title="${result}">${result}</div>
         `;
 
         const actionDiv = document.createElement("div");
@@ -3968,7 +5193,7 @@ export async function renderVariables() {
         insertBtn.className = "icon-btn";
         insertBtn.style.color = "#0078d4";
         insertBtn.innerHTML = `<i class="ms-Icon ms-Icon--Insert"></i>`;
-        insertBtn.title = "Insert to Sheet";
+        insertBtn.title = t("insert_to_sheet");
         insertBtn.onclick = async () => {
             const formulaStr = `=DC.VAR("${vName}")`;
             try {
@@ -3977,9 +5202,9 @@ export async function renderVariables() {
                     cell.formulas = [[formulaStr]];
                     await context.sync();
                 });
-                showStatus(`Inserted variable '${vName}' to sheet.`, "success");
+                showStatus(t("inserted_variable_to_sheet", vName), "success");
             } catch (error: any) {
-                showStatus("Error inserting variable: " + error.message, "error");
+                showStatus(t("error_inserting_variable") + error.message, "error");
             }
         };
 
@@ -3987,7 +5212,7 @@ export async function renderVariables() {
         delBtn.className = "icon-btn";
         delBtn.style.color = "#d13438";
         delBtn.innerHTML = `<i class="ms-Icon ms-Icon--Delete"></i>`;
-        delBtn.title = "Delete Variable";
+        delBtn.title = t("delete_variable");
         delBtn.onclick = async () => {
             delete variables[vName];
             await idbSet(IDB_KEYS.VARIABLES, JSON.stringify(variables));
@@ -4011,9 +5236,9 @@ export async function duplicateRecordPrompt(dataTableName: string) {
 
     const allMainIds = mainDataSet.records.map((r: any) => String(r.__DC_ID__));
 
-    const res = await customFormPrompt("Duplicate Record", `Select the record to duplicate and provide a new ID:`, [
-        { id: "sourceId", label: "Source Record ID", type: "autocomplete", options: allMainIds },
-        { id: "newId", label: "New Record ID", type: "text" }
+    const res = await customFormPrompt(t("dup_record_title"), t("dup_record_msg"), [
+        { id: "sourceId", label: t("source_record_id_label"), type: "autocomplete", options: allMainIds },
+        { id: "newId", label: t("dup_record_new_id"), type: "text" }
     ]);
 
     if (!res || !res.sourceId || !res.newId) return;
@@ -4023,13 +5248,13 @@ export async function duplicateRecordPrompt(dataTableName: string) {
 
     if (sourceId === "" || newId === "") return;
     if (allMainIds.includes(newId)) {
-        showStatus(`Record ID '${newId}' already exists in '${dataTableName}'.`, "error");
+        showStatus(t("record_id_already_exists", newId, dataTableName), "error");
         return;
     }
 
     const sourceRecord = mainDataSet.records.find((r: any) => String(r.__DC_ID__) === sourceId);
     if (!sourceRecord) {
-        showStatus(`Source record '${sourceId}' not found.`, "error");
+        showStatus(t("source_record_not_found", sourceId), "error");
         return;
     }
 
@@ -4086,9 +5311,9 @@ export async function duplicateRecordPrompt(dataTableName: string) {
     await renderDashboard();
     await refreshFormulas(true);
 
-    showStatus(`Successfully duplicated record '${sourceId}' to '${newId}' along with ${clonedSubRecordsCount} sub-records.`, "success");
+    showStatus(t("successfully_duplicated_record", sourceId, newId, String(clonedSubRecordsCount)), "success");
   } catch (error: any) {
-    showStatus("Error duplicating record: " + error.message, "error");
+    showStatus(t("error_duplicating_record") + error.message, "error");
   }
 }
 
@@ -4102,10 +5327,9 @@ export async function manageWorkspaces() {
     const currentFamilies = new Set<string>();
     Object.keys(store).forEach(k => currentFamilies.add(store[k].family || 'Public'));
 
-    familiesList = familiesList.filter(f => currentFamilies.has(f));
     currentFamilies.forEach(f => { if (!familiesList.includes(f)) familiesList.push(f); });
 
-    const res = await customManageListPrompt("Manage Workspaces", "Drag to reorder, edit to rename. Click the trash icon to mark for deletion.", familiesList, "Add Workspace", true);
+    const res = await customManageListPrompt(t("manage_ws_title"), t("manage_ws_desc"), familiesList, "", true);
 
     if (!res) return;
 
@@ -4118,7 +5342,7 @@ export async function manageWorkspaces() {
                 const ws = r.original;
                 const tablesInWs = Object.keys(store).filter(k => (store[k].family || 'Public') === ws);
                 if (tablesInWs.length > 0) {
-                    const confirm = await customConfirm("Delete Workspace", `Are you sure you want to permanently delete '${ws}' and ALL its ${tablesInWs.length} tables?`, "Yes, Delete Everything");
+                    const confirm = await customConfirm(t("delete_ws_title"), t("delete_ws_msg", ws, tablesInWs.length), t("del_table_confirm"));
                     if (!confirm) {
                         newOrder.push(ws); // keep it if they cancelled
                         continue;
@@ -4176,7 +5400,7 @@ export async function manageWorkspaceTables(fam: string) {
         return idxA - idxB;
     });
 
-    const res = await customManageListPrompt(`Manage Tables: ${fam}`, "Drag to reorder. Click the trash icon to mark for deletion. (Renaming disabled)", tablesInWs, "Add New Table", false);
+    const res = await customManageListPrompt(t("manage_tb_title", fam), t("manage_tb_desc"), tablesInWs, "", false);
     if (!res) return;
 
     let hasChanges = false;
@@ -4185,18 +5409,18 @@ export async function manageWorkspaceTables(fam: string) {
     for (const r of res) {
         if (r.isDeleted) {
             if (!r.isNew) {
-                const t = r.original;
-                const confirm = await customConfirm("Delete Table", `Permanently delete table '${t}'?`, "Yes, Delete");
+                const tbName = r.original;
+                const confirm = await customConfirm(t("delete_tb_title"), t("delete_tb_msg", tbName), t("del_version_confirm"));
                 if (confirm) {
-                    delete store[t];
+                    delete store[tbName];
                     for (const key of Object.keys(store)) {
                         if (store[key].relations) {
-                            store[key].relations = store[key].relations.filter((rel: any) => rel.subTable !== t);
+                            store[key].relations = store[key].relations.filter((rel: any) => rel.subTable !== tbName);
                         }
                     }
                     hasChanges = true;
                 } else {
-                    newOrder.push(t);
+                    newOrder.push(tbName);
                 }
             }
         } else {
@@ -4216,45 +5440,9 @@ export async function manageWorkspaceTables(fam: string) {
 }
 
 export async function addTableToWorkspacePrompt(fam: string, defaultName: string = "") {
-    try {
-        const storedData = await idbGet(IDB_KEYS.STORE);
-        const store = storedData ? JSON.parse(storedData) : {};
-        const allTableKeys = Object.keys(store);
-
-        const res = await customFormPrompt(`Add Table`, `Create a new table in the '${fam}' workspace.`, [
-            { id: "tableName", label: "Data Table Name", type: "text", value: defaultName },
-            { id: "parentTable", label: "Parent Table (Optional Link)", type: "select", options: ["-- None --", ...allTableKeys] }
-        ]);
-        if (res && res.tableName) {
-            await loadRangeForCapture(res.tableName, fam, res.parentTable === "-- None --" ? "" : res.parentTable);
-        }
-    } catch (error: any) {
-        showStatus("Error adding table: " + error.message, "error");
-    }
+    await executeNewTableCapture(fam, defaultName);
 }
 
 export async function addTableGlobal() {
-    try {
-        const storedData = await idbGet(IDB_KEYS.STORE);
-        const store = storedData ? JSON.parse(storedData) : {};
-        const allTableKeys = Object.keys(store);
-        
-        const familiesSet = new Set<string>();
-        allTableKeys.forEach(k => familiesSet.add(store[k].family || 'Public'));
-        const familiesList = Array.from(familiesSet);
-        if (!familiesList.includes("Public")) familiesList.push("Public");
-
-        const res = await customFormPrompt(`Capture New Table`, `Select a range in Excel with headers and data, provide a name, and select a workspace.`, [
-            { id: "tableName", label: "Data Table Name", type: "text" },
-            { id: "workspace", label: "Workspace", type: "autocomplete", options: familiesList, value: "Public" },
-            { id: "parentTable", label: "Parent Table (Optional Link)", type: "select", options: ["-- None --", ...allTableKeys] }
-        ]);
-        
-        if (res && res.tableName && res.tableName.trim() !== "") {
-            const ws = (res.workspace && res.workspace.trim() !== "") ? res.workspace.trim() : "Public";
-            await loadRangeForCapture(res.tableName.trim(), ws, res.parentTable === "-- None --" ? "" : res.parentTable);
-        }
-    } catch (error: any) {
-        showStatus("Error adding table: " + error.message, "error");
-    }
+    await executeNewTableCapture("Public", "");
 }

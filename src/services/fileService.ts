@@ -1,4 +1,5 @@
 import { idbGet, idbSet } from "../utils/db";
+import { t } from "../taskpane/taskpane";
 
 export async function exportCSVData(dataTableName: string, selectedRev: number, targetDataSet: any) {
   const escapeField = (field: any) => {
@@ -31,7 +32,7 @@ export async function downloadBackup() {
   const storedData = await idbGet("DC_STORE");
   const variablesData = await idbGet("DC_VARIABLES");
   
-  if (!storedData || storedData === "{}") throw new Error("No data to backup.");
+  if (!storedData || storedData === "{}") throw new Error(t("no_data_to_backup"));
   
   const backupObject = {
       type: "DataControllerBackup",
@@ -54,7 +55,7 @@ export async function downloadBackup() {
 export async function processRestoreFile(event: any): Promise<void> {
   return new Promise((resolve, reject) => {
     const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return reject(new Error("No file selected."));
+    if (!input.files || input.files.length === 0) return reject(new Error(t("no_file_selected")));
     
     const file = input.files[0];
     const reader = new FileReader();
@@ -62,7 +63,7 @@ export async function processRestoreFile(event: any): Promise<void> {
       try {
         const content = e.target.result;
         const parsed = JSON.parse(content);
-        if (typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid backup file format.");
+        if (typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(t("invalid_backup_file_format"));
         
         if (parsed.type === "DataControllerBackup" && parsed.store) {
             // New Format (Includes Variables)
@@ -77,11 +78,11 @@ export async function processRestoreFile(event: any): Promise<void> {
         
         input.value = ""; // Reset input
         resolve();
-      } catch (err) {
+      } catch (err: any) {
         reject(err);
       }
     };
-    reader.onerror = () => reject(new Error("Error reading file."));
+    reader.onerror = () => reject(new Error(t("error_reading_file")));
     reader.readAsText(file);
   });
 }

@@ -22,7 +22,7 @@ export async function executeInsertDropdown(headersList: string[]) {
   await Excel.run(async (context) => {
     let sourceString = headersList.join(",");
     if (sourceString.length >= 255) {
-       let validHeaders = [];
+       let validHeaders: string[] = [];
        let currentLength = 0;
        for (let h of headersList) {
            if (currentLength + h.length + 1 < 255) {

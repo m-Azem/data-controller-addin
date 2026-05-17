@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>23c7b39a-7a54-4770-8e4d-7f5dbf5f1c9d</Id>
-  <Version>1.0.0.1</Version>
+  <Version>1.0.2.0</Version>
   <ProviderName>AnsarDev</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Data Controller"/>
@@ -97,7 +97,7 @@
       <bt:ShortStrings>
         <bt:String id="Functions.Namespace" DefaultValue="DC"/>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Data Controller!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="TESTing"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="TEST"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Data Controller"/>
       </bt:ShortStrings>
       <bt:LongStrings>
@@ -108,3 +108,5 @@
   </VersionOverrides>
 </OfficeApp>
 
+<!--https://m-azem.github.io/data-controller-addin/-->
+<!--https://www.contoso.com/-->

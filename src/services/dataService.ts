@@ -1,5 +1,29 @@
 /* global Office */
 import { idbGet } from "../utils/db";
+import { t } from "../taskpane/taskpane";
+
+let parsedStoreCache: { raw: string | null, data: any } = { raw: null, data: null };
+let parsedVariablesCache: { raw: string | null, data: any } = { raw: null, data: null };
+
+async function getParsedStore() {
+    const raw = await idbGet("DC_STORE");
+    if (raw === parsedStoreCache.raw && parsedStoreCache.data) {
+        return parsedStoreCache.data;
+    }
+    const data = raw ? JSON.parse(raw) : {};
+    parsedStoreCache = { raw, data };
+    return data;
+}
+
+async function getParsedVariables() {
+    const raw = await idbGet("DC_VARIABLES");
+    if (raw === parsedVariablesCache.raw && parsedVariablesCache.data) {
+        return parsedVariablesCache.data;
+    }
+    const data = raw ? JSON.parse(raw) : {};
+    parsedVariablesCache = { raw, data };
+    return data;
+}
 
 export async function getTableData(dataTableName?: string, rev?: number): Promise<{ records: any[], fields: string[], error?: string }> {
   try {
@@ -14,14 +38,13 @@ export async function getTableData(dataTableName?: string, rev?: number): Promis
       if (defRevStr) finalRev = parseInt(defRevStr);
     }
 
-    if (!targetDataTable) return { records: [], fields: [], error: "Error: No data table specified." };
+    if (!targetDataTable) return { records: [], fields: [], error: t("no_data_table_specified") };
 
-    const storedData = await idbGet("DC_STORE");
-    if (!storedData) return { records: [], fields: [], error: "Error: No data captured." };
+    const store = await getParsedStore();
+    if (!store || Object.keys(store).length === 0) return { records: [], fields: [], error: t("no_data_captured") };
 
-    const store = JSON.parse(storedData);
     const dataSet = store[targetDataTable];
-    if (!dataSet) return { records: [], fields: [], error: "Error: Data table not found." };
+    if (!dataSet) return { records: [], fields: [], error: t("data_table_not_found") };
 
     let records = dataSet.records;
     let fields = dataSet.fields;
@@ -31,29 +54,27 @@ export async function getTableData(dataTableName?: string, rev?: number): Promis
         records = dataSet.history[finalRev].records;
         fields = dataSet.history[finalRev].fields;
       } else {
-        return { records: [], fields: [], error: "Error: Revision not found." };
+        return { records: [], fields: [], error: t("revision_not_found") };
       }
     }
 
     return { records, fields };
-  } catch (error) {
-    return { records: [], fields: [], error: `DB Error: ${error.message || error}` };
+  } catch (error: any) {
+    return { records: [], fields: [], error: `${t("db_error_prefix")}${error.message || error}` };
   }
 }
 
 export async function getGlobalVariable(varName: string): Promise<any> {
   try {
       await Office.onReady();
-      const vStoreRaw = await idbGet("DC_VARIABLES");
-      const variables = vStoreRaw ? JSON.parse(vStoreRaw) : {};
+      const variables = await getParsedVariables();
       const formula = variables[varName];
-      if (!formula) return "Error: Variable not found";
+      if (!formula) return t("variable_not_found");
 
-      const storedData = await idbGet("DC_STORE");
-      const store = storedData ? JSON.parse(storedData) : {};
+      const store = await getParsedStore();
       
       const evaluateVar = (vName: string, visited: Set<string>): any => {
-          if (visited.has(vName)) throw new Error("Circular reference detected");
+          if (visited.has(vName)) throw new Error(t("circular_reference_detected"));
           visited.add(vName);
           const vForm = variables[vName];
           if (!vForm) return 0;
@@ -77,7 +98,7 @@ export async function getGlobalVariable(varName: string): Promise<any> {
       };
 
       return evaluateVar(varName, new Set());
-  } catch (error) {
-      return `Error: ${error.message || error}`;
+  } catch (error: any) {
+      return `${t("data_service_error_prefix")}${error.message || error}`;
   }
 }
