@@ -97,7 +97,7 @@
       <bt:ShortStrings>
         <bt:String id="Functions.Namespace" DefaultValue="DC"/>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Data Controller!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="TEST"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="DC"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Data Controller"/>
       </bt:ShortStrings>
       <bt:LongStrings>
