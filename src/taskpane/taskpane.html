@@ -78,6 +78,7 @@
         .fw-bold { font-weight: bold; }
         .fw-600 { font-weight: 600; }
         .uppercase { text-transform: uppercase; }
+        .whitespace-nowrap { white-space: nowrap; }
         .border-top { border-top: 1px solid var(--border-color); }
         .border-bottom-primary { border-bottom: 2px solid var(--primary-color); }
         .border-bottom { border-bottom: 1px solid var(--border-color); }
@@ -92,6 +93,10 @@
         .max-h-40vh { max-height: 40vh; overflow-y: auto; }
         .max-h-25vh { max-height: 25vh; overflow-y: auto; }
         .z-index-10000 { z-index: 10000; }
+        @media (max-width: 340px) {
+            .hide-sm { display: none !important; }
+            .icon-no-margin-sm { margin-inline-end: 0 !important; }
+        }
     </style>
 </head>
 <body class="ms-font-m ms-welcome">
@@ -115,26 +120,25 @@
         <!-- Main View (Dashboard + Capture) -->
         <div id="main-view" class="view-container">
             
-            <div class="dashboard-controls">
-                <div class="ms-TextField flex-2">
-                    <label class="ms-Label" data-i18n="default_table">Default Table (Formulas)</label>
-                    <select id="default-data-table-select" class="ms-Dropdown-title" title="Default Table" data-i18n-title="default_table"></select>
-                </div>
-                <div class="ms-TextField flex-1">
-                    <label class="ms-Label" data-i18n="revision">Revision</label>
-                    <select id="default-revision-select" class="ms-Dropdown-title" title="Revision" data-i18n-title="revision"></select>
-                </div>
-            </div>
-
             <!-- Formula Builder Accordion -->
             <button class="accordion mt-0 active" id="formula-builder-accordion">
                 <i class="ms-Icon ms-Icon--Calculator mr-8"></i> <span data-i18n="formula_builder">Visual Formula Builder</span>
             </button>
             <div class="accordion-content mb-0 show" id="formula-builder-content">
-                <p class="description-text mb-16" data-i18n="formula_builder_desc">Select a function and fill in the parameters. Cell references (e.g. A1) are supported.</p>
-                <div class="ms-TextField">
+                <div class="dashboard-controls d-flex gap-8 mb-12">
+                    <div class="ms-Dropdown flex-2">
+                        <label class="ms-Label" data-i18n="default_table">Default Table (Formulas)</label>
+                        <select id="default-data-table-select" class="ms-Dropdown-title w-100" title="Default Table" data-i18n-title="default_table"></select>
+                    </div>
+                    <div class="ms-Dropdown flex-1">
+                        <label class="ms-Label" data-i18n="revision">Revision</label>
+                        <select id="default-revision-select" class="ms-Dropdown-title w-100" title="Revision" data-i18n-title="revision"></select>
+                    </div>
+                </div>
+                <p class="description-text mb-16 hide-sm" data-i18n="formula_builder_desc">Select a function and fill in the parameters. Cell references (e.g. A1) are supported.</p>
+                <div class="ms-Dropdown mb-12">
                     <label class="ms-Label" data-i18n="select_function">Select Function</label>
-                    <select id="formula-select" class="ms-Dropdown-title" title="Select Function" data-i18n-title="select_function">
+                    <select id="formula-select" class="ms-Dropdown-title w-100" title="Select Function" data-i18n-title="select_function">
                         <option value="GET" selected>DC.GET</option>
                         <option value="SEARCH">DC.SEARCH</option>
                         <option value="FILTER">DC.FILTER</option>
@@ -147,11 +151,11 @@
                 </div>
                 <div id="formula-inputs-container"></div>
                 <div class="d-flex gap-8 mt-12">
-                    <button id="insert-built-formula-button" class="ms-Button ms-Button--primary flex-1">
-                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--CheckMark mr-8"></i><span data-i18n="insert_btn">Insert</span></span>
+                    <button id="insert-built-formula-button" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" title="Insert" data-i18n-title="insert_btn">
+                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--CheckMark mr-8 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="insert_btn">Insert</span></span>
                     </button>
-                    <button id="clear-formula-button" class="ms-Button ms-Button--default flex-1">
-                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Clear mr-8"></i><span data-i18n="clear_btn">Clear</span></span>
+                    <button id="clear-formula-button" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" title="Clear" data-i18n-title="clear_btn">
+                        <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Clear mr-8 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="clear_btn">Clear</span></span>
                     </button>
                 </div>
             </div>
@@ -161,7 +165,7 @@
                 <i class="ms-Icon ms-Icon--Variable mr-8"></i> <span data-i18n="global_variables">Global Variables</span>
             </button>
             <div class="accordion-content" id="variables-content">
-                <p class="description-text mb-16" data-i18n="global_variables_desc">Define standalone variables using table data (e.g., <code>DC.SUM('Table', 'Col')</code>).</p>
+                <p class="description-text mb-16 hide-sm" data-i18n="global_variables_desc">Define standalone variables using table data (e.g., <code>DC.SUM('Table', 'Col')</code>).</p>
                 <button id="add-variable-btn" class="ms-Button ms-Button--primary w-100 mb-8">
                     <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Add mr-8"></i><span data-i18n="add_variable">Add Variable</span></span>
                 </button>
@@ -173,7 +177,7 @@
                 <i class="ms-Icon ms-Icon--Link mr-8"></i> <span data-i18n="global_relations">Global Relations</span>
             </button>
             <div class="accordion-content" id="relations-content">
-                <p class="description-text mb-16" data-i18n="global_relations_desc">Manage structural links between your tables.</p>
+                <p class="description-text mb-16 hide-sm" data-i18n="global_relations_desc">Manage structural links between your tables.</p>
                 <button id="manage-global-relations-btn" class="ms-Button ms-Button--primary w-100 mb-8">
                     <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Link mr-8"></i><span data-i18n="manage_relations">Add / Manage Relations</span></span>
                 </button>
@@ -185,14 +189,11 @@
                 <div class="d-flex justify-between align-center border-bottom-primary pb-8 mb-12">
                     <h3 class="m-0 fs-16 color-primary"><i class="ms-Icon ms-Icon--FabricFolder mr-8"></i><span data-i18n="workspaces">Workspaces</span></h3>
                     <div class="d-flex gap-8">
-                        <button id="add-table-btn-global" class="ms-Button ms-Button--default min-w-auto px-12 h-28" title="Add New Table" data-i18n-title="add_new_table">
-                            <span class="ms-Button-label fs-12"><i class="ms-Icon ms-Icon--Add mr-6"></i><span data-i18n="add_new_table">Add New Table</span></span>
+                        <button id="add-workspace-btn-global" class="ms-Button ms-Button--default min-w-auto px-12 h-28 whitespace-nowrap" title="Add Workspace" data-i18n-title="add_workspace">
+                            <span class="ms-Button-label fs-12"><i class="ms-Icon ms-Icon--Add mr-6 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="add_workspace">Add Workspace</span></span>
                         </button>
-                        <button id="add-workspace-btn-global" class="ms-Button ms-Button--default min-w-auto px-12 h-28" title="Add Workspace" data-i18n-title="add_workspace">
-                            <span class="ms-Button-label fs-12"><i class="ms-Icon ms-Icon--Add mr-6"></i><span data-i18n="add_workspace">Add Workspace</span></span>
-                        </button>
-                        <button id="manage-workspaces-btn" class="ms-Button ms-Button--primary min-w-auto px-12 h-28">
-                            <span class="ms-Button-label fs-12"><i class="ms-Icon ms-Icon--Settings mr-6"></i><span data-i18n="manage_btn">Manage</span></span>
+                        <button id="manage-workspaces-btn" class="ms-Button ms-Button--primary min-w-auto px-12 h-28 whitespace-nowrap" title="Manage" data-i18n-title="manage_btn">
+                            <span class="ms-Button-label fs-12"><i class="ms-Icon ms-Icon--Settings mr-6 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="manage_btn">Manage</span></span>
                         </button>
                     </div>
                 </div>
@@ -209,7 +210,7 @@
 
             <div class="settings-group">
                 <label class="ms-Label" data-i18n="backup_restore">Data Backup & Restore</label>
-                <p class="description-text fs-12 mb-16" data-i18n="backup_restore_desc">Download a backup of your data or restore it from a file.</p>
+                <p class="description-text fs-12 mb-16 hide-sm" data-i18n="backup_restore_desc">Download a backup of your data or restore it from a file.</p>
                 <div class="button-group flex-col">
                     <button id="backup-button" class="ms-Button ms-Button--default w-100 mb-8">
                         <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Download mr-8"></i><span data-i18n="backup_data">Backup Data</span></span>
@@ -240,7 +241,7 @@
 
             <div class="settings-group">
                 <label class="ms-Label" data-i18n="help_doc">Help & Documentation</label>
-                <p class="description-text fs-12 mb-16" data-i18n="help_desc">Need assistance or want to learn how to use Data Controller?</p>
+                <p class="description-text fs-12 mb-16 hide-sm" data-i18n="help_desc">Need assistance or want to learn how to use Data Controller?</p>
                 <button id="help-button" class="ms-Button ms-Button--default w-100">
                     <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Help mr-8"></i><span data-i18n="help_btn">Open Help Center</span></span>
                 </button>
@@ -261,12 +262,12 @@
         <p class="description-text fs-12 mb-20" data-i18n="grid_editor_tip">Make your changes directly in the spreadsheet.<br/>Tip: Go to View > New Window > Arrange All to edit this table side-by-side with your main data.<br/>Click Save when you are finished to sync the data.</p>
         <p id="live-sync-indicator" class="fs-11 color-success fw-bold mb-12 d-none"><i class="ms-Icon ms-Icon--Sync mr-4"></i> <span data-i18n="live_sync_active">Live Sync Active (Click a row in the main table to auto-switch)</span></p>
         
-        <div class="button-group flex-col">
-            <button id="editor-save-btn" class="ms-Button ms-Button--primary w-100 mb-8">
-                <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Save mr-8"></i><span data-i18n="save_sync_btn">Save & Sync Changes</span></span>
+        <div class="d-flex gap-8">
+            <button id="editor-save-btn" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" title="Save & Sync Changes" data-i18n-title="save_sync_btn">
+                <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Save mr-8 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="save_sync_btn">Save & Sync Changes</span></span>
             </button>
-            <button id="editor-cancel-btn" class="ms-Button ms-Button--default w-100">
-                <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Cancel mr-8"></i><span data-i18n="cancel_close_btn">Cancel & Close</span></span>
+            <button id="editor-cancel-btn" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" title="Cancel & Close" data-i18n-title="cancel_close_btn">
+                <span class="ms-Button-label"><i class="ms-Icon ms-Icon--Cancel mr-8 icon-no-margin-sm"></i><span class="hide-sm" data-i18n="cancel_close_btn">Cancel & Close</span></span>
             </button>
         </div>
     </div>
@@ -277,9 +278,9 @@
             <h3 id="modal-title" class="mt-0 color-primary"></h3>
             <p id="modal-message" class="description-text fs-13"></p>
             <input type="text" id="modal-input" class="ms-TextField-field mb-16" title="Input" data-i18n-title="input_title" />
-            <div class="button-group flex-col">
-                <button id="modal-ok" class="ms-Button ms-Button--primary w-100" data-i18n="ok_btn">OK</button>
-                <button id="modal-cancel" class="ms-Button ms-Button--default w-100" data-i18n="cancel_btn">Cancel</button>
+            <div class="d-flex gap-8">
+                <button id="modal-ok" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" data-i18n="ok_btn">OK</button>
+                <button id="modal-cancel" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" data-i18n="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -291,9 +292,9 @@
             <p id="summary-modal-message" class="description-text fs-13"></p>
             
             <div id="summary-step-1">
-                <div class="ms-TextField mb-12">
+                <div class="ms-Dropdown mb-12">
                     <label class="ms-Label" data-i18n="primary_id_column">Primary ID Column (Must be unique)</label>
-                    <select id="summary-modal-id-select" class="ms-Dropdown-title" title="Primary ID Column" data-i18n-title="primary_id_column"></select>
+                    <select id="summary-modal-id-select" class="ms-Dropdown-title w-100" title="Primary ID Column" data-i18n-title="primary_id_column"></select>
                     <p id="summary-modal-error" class="color-danger fs-12 mt-4 d-none"></p>
                 </div>
                 <label class="ms-Label" data-i18n="columns_drag_label">Columns (Drag to reorder, uncheck to drop, click to rename)</label>
@@ -329,8 +330,13 @@
             <p id="wizard-message" class="description-text fs-13"></p>
             <p id="wizard-error" class="color-danger fs-12 mb-8 d-none p-8 bg-danger-light border-radius-4"></p>
 
+            <!-- Step 0: Select Range -->
+            <div id="wizard-step-range" class="wizard-step">
+                <p class="description-text mb-16 hide-sm" data-i18n="select_range_msg">Please select a range of cells in Excel that includes your headers and data, then click Next.</p>
+            </div>
+
             <!-- Step 1: Basic Info -->
-            <div id="wizard-step-1" class="wizard-step">
+            <div id="wizard-step-1" class="wizard-step d-none">
                 <div class="ms-TextField mb-12">
                     <label class="ms-Label"><span data-i18n="table_name_label">Table Name</span> <span class="color-danger">*</span></label>
                     <input type="text" id="wizard-table-name" class="ms-TextField-field" placeholder="e.g. Customers" title="Table Name" data-i18n-title="table_name_label" data-i18n-placeholder="table_placeholder" />
@@ -340,17 +346,17 @@
                     <input type="text" id="wizard-workspace" class="ms-TextField-field" list="wizard-workspace-list" placeholder="Select or type new" title="Workspace" data-i18n-title="workspace_label" data-i18n-placeholder="workspace_placeholder" />
                     <datalist id="wizard-workspace-list"></datalist>
                 </div>
-                <div class="ms-TextField mb-12">
+                <div class="ms-Dropdown mb-12">
                     <label class="ms-Label" data-i18n="parent_link_label">Parent Table (Optional Link)</label>
-                    <select id="wizard-parent-table" class="ms-Dropdown-title" title="Parent Table" data-i18n-title="parent_link_label"></select>
+                    <select id="wizard-parent-table" class="ms-Dropdown-title w-100" title="Parent Table" data-i18n-title="parent_link_label"></select>
                 </div>
             </div>
 
             <!-- Step 2: Columns & ID -->
             <div id="wizard-step-2" class="wizard-step d-none">
-                <div class="ms-TextField mb-12">
+                <div class="ms-Dropdown mb-12">
                     <label class="ms-Label"><span data-i18n="primary_id_column">Primary ID Column</span> <span class="color-danger">*</span></label>
-                    <select id="wizard-id-select" class="ms-Dropdown-title" title="Primary ID Column" data-i18n-title="primary_id_column"></select>
+                    <select id="wizard-id-select" class="ms-Dropdown-title w-100" title="Primary ID Column" data-i18n-title="primary_id_column"></select>
                 </div>
                 <label class="ms-Label" data-i18n="columns_drag_label">Columns (Drag to reorder, uncheck to drop, click to rename)</label>
                 <button id="wizard-delete-selected" class="ms-Button ms-Button--danger mb-8 fs-10 px-8 h-24-px" data-i18n="delete_selected_btn">Delete Selected</button>
@@ -359,9 +365,9 @@
 
             <!-- Step 3: Foreign Key -->
             <div id="wizard-step-3" class="wizard-step d-none">
-                <div class="ms-TextField mb-12">
+                <div class="ms-Dropdown mb-12">
                     <label class="ms-Label"><span data-i18n="link_col_fk">Link Column (Foreign Key)</span> <span class="color-danger">*</span></label>
-                    <select id="wizard-fk-select" class="ms-Dropdown-title" title="Link Column" data-i18n-title="link_col_fk"></select>
+                    <select id="wizard-fk-select" class="ms-Dropdown-title w-100" title="Link Column" data-i18n-title="link_col_fk"></select>
                     <p class="fs-12 color-muted mt-8 p-8 bg-light border-radius-4"><span data-i18n="select_link_col_1">Select the column in this new table that links to records in</span> <strong id="wizard-parent-name-display" class="color-primary"></strong>.</p>
                 </div>
             </div>
@@ -388,11 +394,11 @@
             </div>
 
             <!-- Actions -->
-            <div class="button-group flex-col mt-20">
-                <button id="wizard-btn-next" class="ms-Button ms-Button--primary w-100" data-i18n="next_btn">Next</button>
-                <button id="wizard-btn-save" class="ms-Button ms-Button--primary d-none w-100" data-i18n="save_table_btn">Save Table</button>
-                <button id="wizard-btn-back" class="ms-Button ms-Button--default d-none w-100" data-i18n="back_btn">Back</button>
-                <button id="wizard-btn-cancel" class="ms-Button ms-Button--default w-100" data-i18n="cancel_btn">Cancel</button>
+            <div class="d-flex gap-8 mt-20">
+                <button id="wizard-btn-back" class="ms-Button ms-Button--default d-none flex-1 whitespace-nowrap" data-i18n="back_btn">Back</button>
+                <button id="wizard-btn-next" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" data-i18n="next_btn">Next</button>
+                <button id="wizard-btn-save" class="ms-Button ms-Button--primary d-none flex-1 whitespace-nowrap" data-i18n="save_table_btn">Save Table</button>
+                <button id="wizard-btn-cancel" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" data-i18n="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -419,9 +425,9 @@
             <h3 id="form-modal-title" class="mt-0 color-primary"></h3>
             <p id="form-modal-message" class="description-text fs-13"></p>
             <div id="form-modal-inputs" class="max-h-50vh mb-16 pr-4"></div>
-            <div class="button-group flex-col">
-                <button id="form-modal-ok" class="ms-Button ms-Button--primary w-100" data-i18n="save_btn">Save</button>
-                <button id="form-modal-cancel" class="ms-Button ms-Button--default w-100" data-i18n="cancel_btn">Cancel</button>
+            <div class="d-flex gap-8">
+                <button id="form-modal-ok" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" data-i18n="save_btn">Save</button>
+                <button id="form-modal-cancel" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" data-i18n="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -431,9 +437,9 @@
         <div class="modal-content max-h-90vh">
             <h3 id="confirm-modal-title" class="mt-0 color-danger"></h3>
             <p id="confirm-modal-message" class="description-text fs-13"></p>
-            <div class="button-group flex-col mt-16">
-                <button id="confirm-modal-yes" class="ms-Button ms-Button--danger w-100" data-i18n="yes_delete_btn">Yes, Delete</button>
-                <button id="confirm-modal-no" class="ms-Button ms-Button--default w-100" data-i18n="cancel_btn">Cancel</button>
+            <div class="d-flex gap-8 mt-16">
+                <button id="confirm-modal-yes" class="ms-Button ms-Button--danger flex-1 whitespace-nowrap" data-i18n="yes_delete_btn">Yes, Delete</button>
+                <button id="confirm-modal-no" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" data-i18n="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -444,10 +450,10 @@
             <h3 id="manage-list-title" class="mt-0 color-primary"></h3>
             <p id="manage-list-message" class="description-text fs-13"></p>
             <ul id="manage-list-items" class="sortable-list max-h-40vh mb-12"></ul>
-            <div class="button-group flex-col">
-                <button id="manage-list-add-btn" class="ms-Button ms-Button--default w-100 mb-8"><i class="ms-Icon ms-Icon--Add mr-8"></i><span data-i18n="add_new_btn">Add New</span></button>
-                <button id="manage-list-save-btn" class="ms-Button ms-Button--primary w-100" data-i18n="save_changes_btn">Save Changes</button>
-                <button id="manage-list-cancel-btn" class="ms-Button ms-Button--default w-100" data-i18n="cancel_btn">Cancel</button>
+            <button id="manage-list-add-btn" class="ms-Button ms-Button--default w-100 mb-12"><i class="ms-Icon ms-Icon--Add mr-8"></i><span data-i18n="add_new_btn">Add New</span></button>
+            <div class="d-flex gap-8">
+                <button id="manage-list-save-btn" class="ms-Button ms-Button--primary flex-1 whitespace-nowrap" data-i18n="save_changes_btn">Save Changes</button>
+                <button id="manage-list-cancel-btn" class="ms-Button ms-Button--default flex-1 whitespace-nowrap" data-i18n="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>

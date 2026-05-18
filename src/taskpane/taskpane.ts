@@ -139,6 +139,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         add_tb_parent: "Parent Table (Optional Link)",
         capture_tb_title: "Capture New Table",
         capture_tb_msg: "Review and map columns for '{0}' ({1} rows detected).",
+        select_range_msg: "Please select a range of cells in Excel that includes your headers and data, then click Next.",
         link_sub_title: "Link Sub-table",
         link_sub_msg: "Which column in '{0}' links to '{1}'?",
         link_col: "Link Column",
@@ -546,6 +547,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         add_tb_parent: "الجدول الأصل (رابط اختياري)",
         capture_tb_title: "التقاط جدول جديد",
         capture_tb_msg: "راجع وقم بتعيين الأعمدة لـ '{0}' (تم اكتشاف {1} صفوف).",
+        select_range_msg: "يرجى تحديد نطاق من الخلايا في Excel يتضمن العناوين والبيانات الخاصة بك، ثم انقر فوق التالي.",
         link_sub_title: "ربط جدول فرعي",
         link_sub_msg: "أي عمود في '{0}' يرتبط بـ '{1}'؟",
         link_col: "عمود الربط",
@@ -1010,9 +1012,6 @@ Office.onReady(async (info) => {
     const addWsBtnGlobal = document.getElementById("add-workspace-btn-global");
     if (addWsBtnGlobal) addWsBtnGlobal.onclick = addWorkspace;
 
-    const addTbBtnGlobal = document.getElementById("add-table-btn-global");
-    if (addTbBtnGlobal) addTbBtnGlobal.onclick = addTableGlobal;
-    
     const closeSettingsBtn = document.getElementById("close-settings-btn");
     if (closeSettingsBtn) closeSettingsBtn.onclick = toggleSettings;
 
@@ -1137,6 +1136,8 @@ const fSelect = document.getElementById("formula-select");
                         activeFormulaInput.value = address.replace(/\$/g, "");
                         activeFormulaInput.dispatchEvent(new Event('input', { bubbles: true }));
                         activeFormulaInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        activeFormulaInput.style.backgroundColor = "var(--hover-bg)";
+                        setTimeout(() => { if (activeFormulaInput) activeFormulaInput.style.backgroundColor = ""; }, 300);
                     });
                 } catch (e) {}
             }
@@ -1980,7 +1981,7 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
 
         fields.forEach(f => {
             const fieldDiv = document.createElement("div");
-            fieldDiv.className = "ms-TextField";
+            fieldDiv.className = f.type === 'select' ? "ms-Dropdown" : "ms-TextField";
             fieldDiv.style.marginBottom = "12px";
 
             const label = document.createElement("label");
@@ -1990,7 +1991,7 @@ export function customFormPrompt(title: string, message: string, fields: FormFie
 
             if (f.type === 'select') {
                 const select = document.createElement("select");
-                select.className = "ms-Dropdown-title";
+                select.className = "ms-Dropdown-title w-100";
                 if (f.disabled) select.disabled = true;
                 (f.options || []).forEach(opt => {
                     const option = document.createElement("option");
@@ -2354,6 +2355,13 @@ export async function renderFormulaBuilder() {
                     options = dataSet.fields || [];
                 } else if (ref.id === "param-id") {
                     options = (dataSet.records || []).map((r: any) => String(r.__DC_ID__));
+                } else if (ref.id === "param-rev") {
+                    const maxRev = dataSet.revision || 1;
+                    for (let i = maxRev; i >= 1; i--) {
+                        if (i === maxRev || (dataSet.history && dataSet.history[i])) {
+                            options.push(String(i));
+                        }
+                    }
                 }
             }
             // Remove duplicates and empty strings
@@ -2362,7 +2370,16 @@ export async function renderFormulaBuilder() {
             options.forEach(opt => {
                 const optionElement = document.createElement("option");
                 optionElement.value = opt;
-                if (ref.el.tagName === "SELECT") optionElement.text = opt;
+                if (ref.el.tagName === "SELECT") {
+                    if (ref.id === "param-rev") {
+                        const tName = getTargetTableForInput(ref.id);
+                        const dSet = store[tName];
+                        const isMax = dSet && String(dSet.revision || 1) === opt;
+                        optionElement.text = t("rev_latest_history", opt, isMax ? t("rev_latest_suffix") : "");
+                    } else {
+                        optionElement.text = opt;
+                    }
+                }
                 targetEl.appendChild(optionElement);
             });
 
@@ -2375,22 +2392,22 @@ export async function renderFormulaBuilder() {
     container.innerHTML = "";
 
     fields.forEach(f => {
+        const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch" || f.id === "param-ascending" || f.id.toLowerCase().includes("tablename") || f.id === "param-rev";
         const fieldDiv = document.createElement("div");
-        fieldDiv.className = "ms-TextField";
+        fieldDiv.className = isSelect ? "ms-Dropdown" : "ms-TextField";
         fieldDiv.style.marginBottom = "8px";
 
         const label = document.createElement("label");
         label.className = "ms-Label";
         label.innerHTML = `${t(f.labelKey)} ${f.required ? '<span style="color:#d13438;">*</span>' : `<span style="color:#888;font-weight:normal;">${t("optional_label")}</span>`}`;
 
-        const isSelect = f.id.toLowerCase().includes("field") || f.id === "param-exactMatch" || f.id === "param-ascending";
         let inputEl: HTMLInputElement | HTMLSelectElement;
         let dataList: HTMLDataListElement | undefined;
 
         if (isSelect || f.id.toLowerCase().includes("tablename")) { // Data Table Names should also be a select for consistency
             inputEl = document.createElement("select");
             inputEl.id = f.id;
-            inputEl.className = "ms-Dropdown-title";
+            inputEl.className = "ms-Dropdown-title w-100";
             inputRefs.push({ id: f.id, el: inputEl });
             inputEl.addEventListener("focus", () => { activeFormulaInput = null; });
             inputEl.addEventListener("mousedown", () => { activeFormulaInput = null; });
@@ -2423,8 +2440,38 @@ export async function renderFormulaBuilder() {
         }
 
         fieldDiv.appendChild(label);
-        fieldDiv.appendChild(inputEl);
-        if (dataList) fieldDiv.appendChild(dataList);
+        if (isSelect || f.id.toLowerCase().includes("tablename")) {
+            fieldDiv.appendChild(inputEl);
+            if (dataList) fieldDiv.appendChild(dataList);
+        } else {
+            const inputWrapper = document.createElement("div");
+            inputWrapper.style.display = "flex";
+            inputWrapper.style.gap = "6px";
+            inputEl.style.flex = "1";
+            inputWrapper.appendChild(inputEl);
+            if (dataList) inputWrapper.appendChild(dataList);
+            
+            const captureBtn = document.createElement("button");
+            captureBtn.type = "button";
+            captureBtn.className = "icon-btn";
+            captureBtn.title = "Capture Selected Cell";
+            captureBtn.innerHTML = `<i class="ms-Icon ms-Icon--TouchPointer"></i>`;
+            captureBtn.style.border = "1px solid var(--border-color)";
+            captureBtn.style.background = "var(--card-bg)";
+            captureBtn.style.borderRadius = "2px";
+            captureBtn.style.padding = "0 8px";
+            captureBtn.style.cursor = "pointer";
+            captureBtn.style.color = "var(--primary-color)";
+            captureBtn.style.display = "flex";
+            captureBtn.style.alignItems = "center";
+
+            captureBtn.onclick = async () => {
+                inputEl.focus(); // Focus so the auto-capture hook handles the rest via Excel Context
+            };
+
+            inputWrapper.appendChild(captureBtn);
+            fieldDiv.appendChild(inputWrapper);
+        }
         container.appendChild(fieldDiv);
     });
 
@@ -2543,18 +2590,18 @@ export async function loadSettings() {
 }
  
 export function customTableWizardPrompt(
-    headers: string[],
-    dataRows: any[][],
+    captureDataFn: () => Promise<{ values: any[][], formulas: any[][], colStartIndex: number }>,
     workspaces: string[],
     allTables: string[],
     defaultWorkspace: string = "Public",
     defaultTableName: string = ""
-): Promise<{ tableName: string, workspace: string, parentTable: string, foreignKey: string, idField: string, fields: string[], records: any[] } | null> {
+): Promise<{ finalData: { tableName: string, workspace: string, parentTable: string, foreignKey: string, idField: string, fields: string[], records: any[] }, captured: { formulas: any[][], colStartIndex: number, originalHeaders: string[] } } | null> {
     return new Promise((resolve) => {
         const modal = document.getElementById("custom-wizard-modal")!;
         const stepIndicator = document.getElementById("wizard-step-indicator")!;
         const errorEl = document.getElementById("wizard-error")!;
         
+        const stepRange = document.getElementById("wizard-step-range")!;
         const step1 = document.getElementById("wizard-step-1")!;
         const step2 = document.getElementById("wizard-step-2")!;
         const step3 = document.getElementById("wizard-step-3")!;
@@ -2590,8 +2637,13 @@ export function customTableWizardPrompt(
         const sumParent = document.getElementById("wizard-summary-parent")!;
 
         let currentStepIndex = 0;
-        let logicalSteps = [1, 2, 4];
+        let logicalSteps = [0, 1, 2, 4];
         let hasParent = false;
+
+        let headers: string[] = [];
+        let dataRows: any[][] = [];
+        let capturedFormulas: any[][] = [];
+        let colStartIndex: number = 0;
 
         let finalData = {
             tableName: "",
@@ -2613,6 +2665,7 @@ export function customTableWizardPrompt(
             hideError();
             const physicalStep = logicalSteps[currentStepIndex];
             
+            stepRange.style.display = physicalStep === 0 ? "block" : "none";
             step1.style.display = physicalStep === 1 ? "block" : "none";
             step2.style.display = physicalStep === 2 ? "block" : "none";
             step3.style.display = physicalStep === 3 ? "block" : "none";
@@ -2627,7 +2680,7 @@ export function customTableWizardPrompt(
 
         const updateStepTotals = () => {
             hasParent = selectParent.value !== "-- None --";
-            logicalSteps = hasParent ? [1, 2, 3, 4] : [1, 2, 4];
+            logicalSteps = hasParent ? [0, 1, 2, 3, 4] : [0, 1, 2, 4];
             showStep();
         };
 
@@ -2703,7 +2756,6 @@ export function customTableWizardPrompt(
             selectId.onchange = renderBadges;
             renderBadges();
         };
-        initStep2();
 
         const handleDragOver = (e: DragEvent) => {
             e.preventDefault();
@@ -2758,9 +2810,26 @@ export function customTableWizardPrompt(
         };
 
         // --- NAVIGATION LOGIC ---
-        btnNext.onclick = () => {
+        btnNext.onclick = async () => {
             const physicalStep = logicalSteps[currentStepIndex];
-            if (physicalStep === 1) {
+            if (physicalStep === 0) {
+                btnNext.disabled = true;
+                try {
+                    const captured = await captureDataFn();
+                    headers = captured.values[0];
+                    dataRows = captured.values.slice(1);
+                    capturedFormulas = captured.formulas;
+                    colStartIndex = captured.colStartIndex;
+                    initStep2(); // Initialize columns list now that we have headers
+                    currentStepIndex++;
+                    showStep();
+                } catch (err: any) {
+                    showError(err.message);
+                } finally {
+                    btnNext.disabled = false;
+                }
+            } 
+            else if (physicalStep === 1) {
                 finalData.tableName = inputTableName.value.trim();
                 finalData.workspace = inputWorkspace.value.trim();
                 finalData.parentTable = selectParent.value !== "-- None --" ? selectParent.value : "";
@@ -2856,7 +2925,7 @@ export function customTableWizardPrompt(
             document.removeEventListener("keydown", handleKeyDown);
         };
 
-        btnSave.onclick = () => { cleanup(); resolve(finalData); };
+        btnSave.onclick = () => { cleanup(); resolve({ finalData, captured: { formulas: capturedFormulas, colStartIndex, originalHeaders: headers } }); };
         btnCancel.onclick = () => { cleanup(); resolve(null); };
 
         modal.style.display = "flex";
@@ -2867,28 +2936,6 @@ export function customTableWizardPrompt(
 export async function executeNewTableCapture(defaultWorkspace: string = "Public", defaultTableName: string = "") {
   const status = document.getElementById("status-text");
   try {
-    await Excel.run(async (context) => {
-
-      const range = context.workbook.getSelectedRange();
-      range.load(["values", "formulas", "columnIndex"]);
-      await context.sync();
-      const colStartIndex = range.columnIndex;
-
-      const values = range.values;
-      const formulas = range.formulas;
-      if (values.length < 2) {
-        throw new Error(t("select_range_for_table_creation"));
-      }
-
-      let detectedFormulas: { header: string, formula: string }[] = [];
-      if (formulas.length > 1) {
-          values[0].forEach((h, i) => {
-              if (typeof formulas[1][i] === 'string' && formulas[1][i].startsWith('=')) {
-                  detectedFormulas.push({ header: String(h), formula: formulas[1][i] });
-              }
-          });
-      }
-
       const storedData = await idbGet(IDB_KEYS.STORE);
       const store: Store = storedData ? JSON.parse(storedData) : {};
       const allTableKeys = Object.keys(store);
@@ -2900,9 +2947,22 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
       const workspaces = Array.from(familiesSet);
       if (!workspaces.includes("Public")) workspaces.push("Public");
 
+      const captureDataFn = async () => {
+          return await Excel.run(async (context) => {
+              const range = context.workbook.getSelectedRange();
+              range.load(["values", "formulas", "columnIndex"]);
+              await context.sync();
+              const values = range.values;
+              const formulas = range.formulas;
+              if (values.length < 2) {
+                  throw new Error(t("select_range_for_table_creation"));
+              }
+              return { values, formulas, colStartIndex: range.columnIndex };
+          });
+      };
+
       const wizardResult = await customTableWizardPrompt(
-          values[0],
-          values.slice(1),
+          captureDataFn,
           workspaces,
           allTableKeys,
           defaultWorkspace,
@@ -2911,30 +2971,31 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
 
       if (!wizardResult) return; // User cancelled
 
-      const dataName = wizardResult.tableName;
+      const { finalData, captured } = wizardResult;
+      const dataName = finalData.tableName;
       
       let rev = 1;
       store[dataName] = {
           dataTableName: dataName,
-          family: wizardResult.workspace,
-          idField: wizardResult.idField,
+          family: finalData.workspace,
+          idField: finalData.idField,
           revision: rev,
           history: {},
-          fields: wizardResult.fields,
-          records: wizardResult.records
+          fields: finalData.fields,
+          records: finalData.records
       };
 
       // Apply calculation logic to initialize them structurally if necessary
       await applyCalculatedFields(store[dataName].records, store[dataName].fields, store[dataName].calculatedFields, store, dataName);
 
       await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
-      if (status) { status.innerText = t("saved_records_in_table", wizardResult.records.length, dataName); status.style.color = "green"; }
+      if (status) { status.innerText = t("saved_records_in_table", finalData.records.length, dataName); status.style.color = "green"; }
 
       // Add relationship if parent table was selected
-      if (wizardResult.parentTable && store[wizardResult.parentTable]) {
-          const pName = wizardResult.parentTable;
+      if (finalData.parentTable && store[finalData.parentTable]) {
+          const pName = finalData.parentTable;
           store[pName].relations = store[pName].relations || [];
-          store[pName].relations.push({ subTable: dataName, foreignKey: wizardResult.foreignKey });
+          store[pName].relations.push({ subTable: dataName, foreignKey: finalData.foreignKey });
           await idbSet(IDB_KEYS.STORE, JSON.stringify(store));
       }
 
@@ -2944,6 +3005,15 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
       // Refresh UI
       await renderDashboard();
       await refreshFormulas(true);
+
+      let detectedFormulas: { header: string, formula: string }[] = [];
+      if (captured.formulas.length > 1) {
+          captured.originalHeaders.forEach((h: string, i: number) => {
+              if (typeof captured.formulas[1][i] === 'string' && captured.formulas[1][i].startsWith('=')) {
+                  detectedFormulas.push({ header: String(h), formula: captured.formulas[1][i] });
+              }
+          });
+      }
 
       // Post-Wizard Prompt for detected formulas
       if (detectedFormulas.length > 0) {
@@ -2962,9 +3032,9 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
                     const colMatch = match.match(/[A-Z]+/i);
                     if (colMatch) {
                         const colIdx = colLetterToIndex(colMatch[0].toUpperCase());
-                        const relativeIdx = colIdx - colStartIndex;
-                        if (relativeIdx >= 0 && relativeIdx < wizardResult.fields.length) {
-                            return `[${wizardResult.fields[relativeIdx]}]`;
+                        const relativeIdx = colIdx - captured.colStartIndex;
+                        if (relativeIdx >= 0 && relativeIdx < finalData.fields.length) {
+                            return `[${finalData.fields[relativeIdx]}]`;
                         }
                     }
                     return match;
@@ -2979,7 +3049,7 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
                 id: df.header,
                 label: `${df.header} (Detected: ${mappedCalcs[df.header].excel})`,
                 type: 'formula',
-                fieldsList: wizardResult.fields,
+                fieldsList: finalData.fields,
                 tablesWithFields: tablesWithFields,
                 value: mappedCalcs[df.header].dc
             }));
@@ -3001,7 +3071,6 @@ export async function executeNewTableCapture(defaultWorkspace: string = "Public"
                 }
             }
       }
-    });
   } catch (error: any) {
     showStatus(error.message, "error");
   }
@@ -3157,6 +3226,8 @@ export async function renderDashboard() {
     list.innerHTML = `<div style='font-size: 12px; color: #666; padding: 8px;'>${t("no_tables")}</div>`;
     if (defaultSelect) defaultSelect.innerHTML = "";
     if (defaultRevSelect) defaultRevSelect.innerHTML = "";
+    renderFormulaBuilder();
+    await renderVariables();
     return;
   }
 
@@ -3223,6 +3294,8 @@ export async function renderDashboard() {
     list.innerHTML = `<div style='font-size: 12px; color: #666; padding: 8px;'>${t("no_workspaces")}</div>`;
     if (defaultSelect) defaultSelect.innerHTML = "";
     if (defaultRevSelect) defaultRevSelect.innerHTML = "";
+    renderFormulaBuilder();
+    await renderVariables();
     return;
   }
 
@@ -3451,15 +3524,36 @@ export async function renderDashboard() {
     titleSpan.innerHTML = `<i class="ms-Icon ms-Icon--FabricFolder" style="margin-inline-end: 8px; color: var(--primary-color);"></i> <span style="font-weight: 600; font-size: 14px;">${fam}</span>`;
     famHeaderContent.appendChild(titleSpan);
     
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.style.display = "flex";
+    buttonsContainer.style.gap = "6px";
+
+    const addTableBtn = document.createElement("button");
+    addTableBtn.className = "ms-Button ms-Button--primary";
+    addTableBtn.style.minWidth = "auto";
+    addTableBtn.style.padding = "0 8px";
+    addTableBtn.style.height = "24px";
+    addTableBtn.style.lineHeight = "24px";
+    addTableBtn.title = t("add_new_table");
+    addTableBtn.innerHTML = `<span class="ms-Button-label" style="font-size: 11px;"><i class="ms-Icon ms-Icon--Add icon-no-margin-sm" style="margin-inline-end: 4px;"></i><span class="hide-sm">${t("add_new_table")}</span></span>`;
+    addTableBtn.onclick = (e) => {
+        e.stopPropagation();
+        executeNewTableCapture(fam, "");
+    };
+
     const manageTablesBtn = document.createElement("button");
     manageTablesBtn.className = "ms-Button ms-Button--default";
     manageTablesBtn.style.minWidth = "auto";
     manageTablesBtn.style.padding = "0 8px";
     manageTablesBtn.style.height = "24px";
     manageTablesBtn.style.lineHeight = "24px";
-    manageTablesBtn.innerHTML = `<span class="ms-Button-label" style="font-size: 11px;"><i class="ms-Icon ms-Icon--Settings" style="margin-inline-end: 4px;"></i>${t("tables_btn")}</span>`;
+    manageTablesBtn.title = t("manage_btn");
+    manageTablesBtn.innerHTML = `<span class="ms-Button-label" style="font-size: 11px;"><i class="ms-Icon ms-Icon--Settings icon-no-margin-sm" style="margin-inline-end: 4px;"></i><span class="hide-sm">${t("tables_btn")}</span></span>`;
     manageTablesBtn.onclick = (e) => { e.stopPropagation(); manageWorkspaceTables(fam); };
-    famHeaderContent.appendChild(manageTablesBtn);
+    
+    buttonsContainer.appendChild(addTableBtn);
+    buttonsContainer.appendChild(manageTablesBtn);
+    famHeaderContent.appendChild(buttonsContainer);
 
     famHeader.appendChild(famHeaderContent);
 
@@ -5441,8 +5535,4 @@ export async function manageWorkspaceTables(fam: string) {
 
 export async function addTableToWorkspacePrompt(fam: string, defaultName: string = "") {
     await executeNewTableCapture(fam, defaultName);
-}
-
-export async function addTableGlobal() {
-    await executeNewTableCapture("Public", "");
 }
